@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Faculty Dashboard — IoT Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<style>
+:root{--bg:#f0f2f5;--panel:#fff;--border:#dde3ea;--accent:#1a237e;--accent2:#1477d3;--danger:#c62828;--warn:#e65100;--success:#2e7d32;--text:#1a2332;--muted:#6b7a8d;--dim:#dde3ea}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:'Rajdhani',sans-serif;background:var(--bg);color:var(--text)}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--dim)}::-webkit-scrollbar-thumb{background:#b0bec5;border-radius:3px}
+
+/* LOGIN */
+.f-login{min-height:100vh;background:linear-gradient(135deg,#1a237e,#283593);display:flex;align-items:center;justify-content:center}
+.f-card{background:#fff;border-radius:16px;padding:42px 48px;width:440px;max-width:94vw;box-shadow:0 24px 60px rgba(0,0,0,.3)}
+.f-card h1{font-size:24px;color:#1a237e;margin-bottom:6px;text-align:center}
+.f-card p{font-size:13px;color:var(--muted);text-align:center;margin-bottom:28px;font-family:'JetBrains Mono',monospace}
+.f-fld{margin-bottom:16px}
+.f-fld label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.f-fld input{width:100%;padding:11px 14px;border:1.5px solid var(--dim);border-radius:9px;font-size:14px;font-family:'Rajdhani',sans-serif;color:var(--text);background:#f8fafc}
+.f-fld input:focus{outline:none;border-color:var(--accent2)}
+.f-btn{width:100%;padding:13px;background:var(--accent);border:none;border-radius:9px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:'Rajdhani',sans-serif}
+.f-btn:hover{background:var(--accent2)}
+.f-err{background:#ffebee;border:1px solid #ffcdd2;border-radius:7px;padding:10px 14px;color:#c62828;font-size:12px;margin-bottom:14px;display:none}
+
+/* DASHBOARD */
+.dash{display:none;min-height:100vh;flex-direction:column}
+.dash.show{display:flex}
+.dash-top{height:56px;background:var(--accent);display:flex;align-items:center;justify-content:space-between;padding:0 22px;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.dash-top h1{color:#fff;font-size:18px;font-weight:700;letter-spacing:.5px}
+.dash-top-right{display:flex;align-items:center;gap:12px}
+.live-badge{display:flex;align-items:center;gap:6px;font-size:12px;color:#90caf9;font-family:'JetBrains Mono',monospace}
+.live-dot{width:8px;height:8px;border-radius:50%;background:#4caf50;animation:ld .8s infinite}
+@keyframes ld{0%,100%{opacity:1}50%{opacity:.2}}
+.logout-btn{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:6px;padding:5px 14px;font-size:12px;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:600}
+
+/* STATS BAR */
+.stats-bar{display:flex;gap:12px;padding:14px 22px;background:var(--panel);border-bottom:1px solid var(--border)}
+.stat-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 18px;min-width:120px;text-align:center}
+.stat-num{font-size:26px;font-weight:700;font-family:'JetBrains Mono',monospace}
+.stat-lbl{font-size:11px;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:.5px}
+.s-active{color:#2e7d32}.s-blocked{color:#c62828}.s-submitted{color:#1477d3}.s-total{color:#1a237e}
+
+/* CONTROLS */
+.ctrl-bar{display:flex;align-items:center;gap:10px;padding:10px 22px;background:var(--panel);border-bottom:1px solid var(--border)}
+.ctrl-bar input{padding:8px 14px;border:1.5px solid var(--dim);border-radius:7px;font-size:13px;font-family:'Rajdhani',sans-serif;background:#f8fafc;width:240px}
+.ctrl-bar input:focus{outline:none;border-color:var(--accent2)}
+.filter-btn{padding:7px 14px;border:1.5px solid var(--dim);border-radius:7px;background:none;color:var(--muted);font-size:12px;cursor:pointer;font-family:'JetBrains Mono',monospace;transition:all .12s}
+.filter-btn:hover{border-color:var(--accent2);color:var(--accent2)}
+.filter-btn.active{background:#e3f2fd;border-color:#90caf9;color:var(--accent2);font-weight:700}
+.ctrl-bar-right{margin-left:auto;display:flex;gap:8px}
+.refresh-btn{padding:7px 14px;background:var(--accent);border:none;border-radius:7px;color:#fff;font-size:12px;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:600}
+
+/* MAIN GRID */
+.dash-main{flex:1;display:flex;overflow:hidden}
+.students-panel{width:380px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column}
+.stu-list-hdr{padding:12px 16px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-family:'JetBrains Mono',monospace}
+.stu-list{flex:1;overflow-y:auto;padding:8px}
+.stu-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;border:1.5px solid transparent;cursor:pointer;transition:all .12s;margin-bottom:4px;background:#fff}
+.stu-item:hover{border-color:#90caf9;background:#f5f9ff}
+.stu-item.selected{border-color:var(--accent2);background:#e3f2fd}
+.stu-avatar{width:38px;height:38px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:700;flex-shrink:0}
+.stu-info{flex:1;min-width:0}
+.stu-name{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stu-sub{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace}
+.stu-status{flex-shrink:0}
+.badge{display:inline-block;font-size:10px;padding:3px 8px;border-radius:12px;font-weight:700;font-family:'JetBrains Mono',monospace;border:1px solid}
+.b-active{background:#e8f5e9;color:#2e7d32;border-color:#a5d6a7}
+.b-blocked{background:#ffebee;color:#c62828;border-color:#ffcdd2}
+.b-submitted{background:#e3f2fd;color:#1477d3;border-color:#90caf9}
+.b-terminated{background:#fff3e0;color:#e65100;border-color:#ffcc80}
+
+/* DETAIL PANEL */
+.detail-panel{flex:1;overflow-y:auto;padding:20px;background:var(--bg)}
+.no-sel{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--muted);text-align:center;opacity:.5}
+.no-sel .ns-icon{font-size:48px;margin-bottom:12px}
+.no-sel p{font-size:14px;font-family:'JetBrains Mono',monospace}
+
+.detail-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:14px}
+.dc-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.dc-title .dt-icon{font-size:18px}
+
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.info-row{font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--muted);padding:6px 10px;background:var(--bg);border-radius:6px}
+.info-row b{color:var(--text)}
+
+.action-btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.act-btn{padding:9px 18px;border-radius:7px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:'Rajdhani',sans-serif;transition:all .15s}
+.ab-relogin{background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7}.ab-relogin:hover{background:#4caf50;color:#fff}
+.ab-block{background:#ffebee;color:#c62828;border:1px solid #ffcdd2}.ab-block:hover{background:#f44336;color:#fff}
+.ab-view{background:#e3f2fd;color:#1477d3;border:1px solid #90caf9}.ab-view:hover{background:#2196f3;color:#fff}
+.ab-download{background:#f3e5f5;color:#7b1fa2;border:1px solid #ce93d8}.ab-download:hover{background:#9c27b0;color:#fff}
+
+/* VIOLATION LOG */
+.v-timeline{display:flex;flex-direction:column;gap:6px}
+.v-entry{display:flex;gap:10px;padding:8px 12px;border-radius:8px;background:var(--bg);border-left:3px solid var(--danger)}
+.v-ts{font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;flex-shrink:0;min-width:75px}
+.v-detail{flex:1}
+.v-msg{font-size:12px;color:var(--danger);font-weight:600;margin-bottom:2px}
+.v-ctx{font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;line-height:1.5}
+.no-violations{text-align:center;color:var(--success);font-size:13px;padding:20px;font-family:'JetBrains Mono',monospace}
+
+/* COMPONENT LIST */
+.comp-chips{display:flex;flex-wrap:wrap;gap:5px}
+.comp-chip{font-size:10px;background:#e3f2fd;border:1px solid #90caf9;border-radius:5px;padding:3px 8px;color:var(--accent2);font-family:'JetBrains Mono',monospace}
+
+/* CODE VIEW */
+.code-view{background:#1e1e2e;border-radius:8px;padding:14px;max-height:280px;overflow-y:auto;font-family:'JetBrains Mono',monospace;font-size:11px;color:#cdd6f4;line-height:1.65;white-space:pre-wrap;word-break:break-word}
+
+/* EMPTY STATE */
+.empty-students{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-students .ei{font-size:40px;margin-bottom:12px}
+.empty-students p{font-size:13px;font-family:'JetBrains Mono',monospace}
+
+/* NOTIFICATION */
+.notif{position:fixed;bottom:20px;right:20px;background:#1a237e;color:#fff;border-radius:10px;padding:12px 20px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.3);z-index:9000;transform:translateY(100px);transition:transform .3s}
+.notif.show{transform:translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- NOTIFICATION -->
+<div class="notif" id="notif"></div>
+
+<!-- LOGIN -->
+<div class="f-login" id="fLogin">
+  <div class="f-card">
+    <h1>👨‍🏫 Faculty Dashboard</h1>
+    <p>// IoT Lab Proctoring System</p>
+    <div class="f-fld"><label>Faculty Password</label><input type="password" id="fp" placeholder="Faculty admin password" onkeydown="e=>{if(e.key==='Enter')fLogin()}"/></div>
+    <div class="f-err" id="ferr"></div>
+    <button class="f-btn" onclick="fLogin()">🔐 Dashboard Open Karein</button>
+    <p style="text-align:center;margin-top:16px;font-size:12px;color:var(--muted)"><a href="index.html" style="color:var(--accent2);text-decoration:none">← Student Lab</a></p>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="dash" id="dash">
+  <div class="dash-top">
+    <h1>⚡ IoT Lab — Faculty Dashboard</h1>
+    <div class="dash-top-right">
+      <div class="live-badge"><div class="live-dot"></div>LIVE MONITORING</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.6);font-family:'JetBrains Mono',monospace" id="dashClock"></div>
+      <button class="logout-btn" onclick="fLogout()">Logout</button>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-bar">
+    <div class="stat-card"><div class="stat-num s-total" id="stTotal">0</div><div class="stat-lbl">Total Students</div></div>
+    <div class="stat-card"><div class="stat-num s-active" id="stActive">0</div><div class="stat-lbl">Active Now</div></div>
+    <div class="stat-card"><div class="stat-num s-blocked" id="stBlocked">0</div><div class="stat-lbl">Blocked</div></div>
+    <div class="stat-card"><div class="stat-num s-submitted" id="stSubmitted">0</div><div class="stat-lbl">Submitted</div></div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:flex-end;gap:10px">
+      <div style="font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace">Last update: <span id="lastUpdate">—</span></div>
+      <div style="font-size:12px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:6px;padding:5px 12px;color:#2e7d32;font-family:'JetBrains Mono',monospace" id="examPwdShow"></div>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="ctrl-bar">
+    <input type="text" placeholder="🔍 Student search..." oninput="searchStu(this.value)"/>
+    <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+    <button class="filter-btn" onclick="setFilter('active',this)">Active</button>
+    <button class="filter-btn" onclick="setFilter('blocked',this)">Blocked</button>
+    <button class="filter-btn" onclick="setFilter('submitted',this)">Submitted</button>
+    <div class="ctrl-bar-right">
+      <button class="refresh-btn" onclick="refreshData()">🔄 Refresh</button>
+      <button class="refresh-btn" style="background:#2e7d32" onclick="exportCSV()">📥 Export CSV</button>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="dash-main">
+    <div class="students-panel">
+      <div class="stu-list-hdr">Students (<span id="stuCount">0</span>)</div>
+      <div class="stu-list" id="stuList">
+        <div class="empty-students"><div class="ei">👥</div><p>Koi student login nahi hai abhi<br/>Firebase configure karein ya students ka intezaar karein</p></div>
+      </div>
+    </div>
+    <div class="detail-panel" id="detailPanel">
+      <div class="no-sel"><div class="ns-icon">👆</div><p>Kisi student ko click karein<br/>detail dekhne ke liye</p></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// ⚙️  TEACHER CONFIG — SAME AS STUDENT FILE
+// ════════════════════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+  projectId: "YOUR_PROJECT",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+const FACULTY_PASSWORD = "faculty123";   // ← Faculty dashboard password
+const EXAM_PASSWORD    = "iot2024";      // ← Same as student file
+const LAB_NAME         = "IoT Practical Lab";
+// ════════════════════════════════════════════════════════════
+
+let db = null, sessions = {}, selId = null, filter = 'all', searchQ = '';
+
+try { firebase.initializeApp(firebaseConfig); db = firebase.database(); }
+catch(e) { console.warn('Firebase not configured — demo mode'); }
+
+// ── CLOCK ──────────────────────────────────────────────────
+setInterval(() => {
+  document.getElementById('dashClock').textContent = new Date().toLocaleTimeString('en-US',{hour12:false});
+}, 1000);
+
+// ── LOGIN ──────────────────────────────────────────────────
+function fLogin() {
+  const pw = document.getElementById('fp').value.trim();
+  if (pw !== FACULTY_PASSWORD) { document.getElementById('ferr').textContent='❌ Wrong faculty password!'; document.getElementById('ferr').style.display='block'; return; }
+  document.getElementById('fLogin').style.display='none';
+  document.getElementById('dash').classList.add('show');
+  document.getElementById('examPwdShow').textContent=`Student PW: ${EXAM_PASSWORD}`;
+  startListening();
+}
+function fLogout() { document.getElementById('dash').classList.remove('show'); document.getElementById('fLogin').style.display='flex'; }
+
+// ── FIREBASE LISTENER ──────────────────────────────────────
+function startListening() {
+  if (!db) { loadDemoData(); return; }
+  db.ref('sessions').on('value', snap => {
+    sessions = snap.val() || {};
+    renderStudents();
+    updateStats();
+    if (selId && sessions[selId]) renderDetail(selId);
+    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('en-US',{hour12:false});
+  });
+}
+
+function refreshData() {
+  if (!db) { loadDemoData(); return; }
+  db.ref('sessions').once('value', snap => {
+    sessions = snap.val() || {};
+    renderStudents(); updateStats();
+    showNotif('✅ Data refreshed');
+  });
+}
+
+// ── DEMO DATA (when Firebase not configured) ───────────────
+function loadDemoData() {
+  sessions = {
+    's_demo1':{ name:'Rahul Sharma', rollNo:'CS001', status:'active', loginTime:Date.now()-600000, componentCount:5, codeLines:32, labName:LAB_NAME, violations:[], violationCount:0 },
+    's_demo2':{ name:'Priya Gupta', rollNo:'CS002', status:'blocked', loginTime:Date.now()-900000, componentCount:3, codeLines:18, labName:LAB_NAME, violationCount:3,
+      violations:[{time:Date.now()-300000,msg:'Tab switch kiya',components:'LED Red, Resistor',codeLines:15,simRunning:false},{time:Date.now()-200000,msg:'Fullscreen se bahar aaye',components:'LED Red, Resistor, Buzzer',codeLines:18,simRunning:true},{time:Date.now()-100000,msg:'Right-click use kiya',components:'LED Red, Resistor, Buzzer',codeLines:18,simRunning:true}]},
+    's_demo3':{ name:'Amit Kumar', rollNo:'CS003', status:'submitted', loginTime:Date.now()-1200000, submitTime:Date.now()-60000, componentCount:8, codeLines:45, code:'// Submitted code\nvoid loop() { ... }', labName:LAB_NAME, violations:[], violationCount:0 },
+    's_demo4':{ name:'Sneha Patel', rollNo:'CS004', status:'active', loginTime:Date.now()-300000, componentCount:2, codeLines:10, labName:LAB_NAME, violations:[], violationCount:1 },
+  };
+  renderStudents(); updateStats();
+  document.getElementById('lastUpdate').textContent = 'Demo Mode';
+  showNotif('ℹ️ Demo mode — Firebase configure karein real data ke liye');
+}
+
+// ── STATS ──────────────────────────────────────────────────
+function updateStats() {
+  const arr = Object.values(sessions);
+  document.getElementById('stTotal').textContent = arr.length;
+  document.getElementById('stActive').textContent = arr.filter(s=>s.status==='active').length;
+  document.getElementById('stBlocked').textContent = arr.filter(s=>s.status==='blocked').length;
+  document.getElementById('stSubmitted').textContent = arr.filter(s=>s.status==='submitted').length;
+}
+
+// ── STUDENT LIST ───────────────────────────────────────────
+function setFilter(f,el) {
+  filter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderStudents();
+}
+function searchStu(q) { searchQ=q.toLowerCase(); renderStudents(); }
+function renderStudents() {
+  const el = document.getElementById('stuList');
+  let arr = Object.entries(sessions);
+  if (filter !== 'all') arr = arr.filter(([,s])=>s.status===filter);
+  if (searchQ) arr = arr.filter(([,s])=>(s.name||'').toLowerCase().includes(searchQ)||(s.rollNo||'').toLowerCase().includes(searchQ));
+  document.getElementById('stuCount').textContent = arr.length;
+  if (!arr.length) { el.innerHTML='<div class="empty-students"><div class="ei">🔍</div><p>Koi student nahi mila</p></div>'; return; }
+  el.innerHTML = arr.map(([id,s]) => {
+    const initial = (s.name||'?')[0].toUpperCase();
+    const vcount = (s.violationCount||0);
+    const age = s.loginTime ? Math.floor((Date.now()-s.loginTime)/60000) : 0;
+    const statusBadge = {active:'b-active',blocked:'b-blocked',submitted:'b-submitted',violations:'b-terminated'}[s.status]||'b-active';
+    const statusText = {active:'Active',blocked:'Blocked',submitted:'Submitted',violations:'Violation'}[s.status]||s.status;
+    return `<div class="stu-item${selId===id?' selected':''}" onclick="selectStu('${id}')">
+      <div class="stu-avatar" style="${s.status==='blocked'?'background:#c62828':s.status==='submitted'?'background:#1477d3':''}">${initial}</div>
+      <div class="stu-info">
+        <div class="stu-name">${s.name||'—'}</div>
+        <div class="stu-sub">${s.rollNo||'—'} · ${age}m ago · 🧩${s.componentCount||0} 📝${s.codeLines||0}L ${vcount>0?`⚠${vcount}`:''}</div>
+      </div>
+      <div class="stu-status"><span class="badge ${statusBadge}">${statusText}</span></div>
+    </div>`;
+  }).join('');
+}
+
+// ── DETAIL ─────────────────────────────────────────────────
+function selectStu(id) {
+  selId=id;
+  document.querySelectorAll('.stu-item').forEach(el=>el.classList.remove('selected'));
+  document.querySelectorAll(`.stu-item`).forEach(el=>{ if(el.onclick.toString().includes(`'${id}'`)) el.classList.add('selected'); });
+  renderDetail(id);
+}
+
+function renderDetail(id) {
+  const s = sessions[id]; if(!s) return;
+  const panel = document.getElementById('detailPanel');
+  const age = s.loginTime ? Math.floor((Date.now()-s.loginTime)/60000) : 0;
+  const violations = s.violations ? (Array.isArray(s.violations)?s.violations:Object.values(s.violations)) : [];
+  const vcount = violations.length;
+  const comps = s.components ? (Array.isArray(s.components)?s.components:Object.values(s.components)) : [];
+
+  panel.innerHTML = `
+    <!-- STUDENT INFO -->
+    <div class="detail-card">
+      <div class="dc-title"><span class="dt-icon">👤</span> Student Information</div>
+      <div class="info-grid">
+        <div class="info-row"><b>Name:</b> ${s.name||'—'}</div>
+        <div class="info-row"><b>Roll No:</b> ${s.rollNo||'—'}</div>
+        <div class="info-row"><b>Lab:</b> ${s.labName||LAB_NAME}</div>
+        <div class="info-row"><b>Status:</b> <span style="color:${s.status==='active'?'#2e7d32':s.status==='blocked'?'#c62828':'#1477d3'};font-weight:700">${s.status?.toUpperCase()}</span></div>
+        <div class="info-row"><b>Login time:</b> ${s.loginTime?new Date(s.loginTime).toLocaleTimeString('en-US',{hour12:false}):'—'}</div>
+        <div class="info-row"><b>Time in lab:</b> ${age} minutes</div>
+        <div class="info-row"><b>Components placed:</b> ${s.componentCount||comps.length||0}</div>
+        <div class="info-row"><b>Code lines:</b> ${s.codeLines||0}</div>
+        <div class="info-row"><b>Violations:</b> <span style="color:${vcount>0?'#c62828':'#2e7d32'};font-weight:700">${vcount}/3</span></div>
+        ${s.submitTime?`<div class="info-row"><b>Submitted:</b> ${new Date(s.submitTime).toLocaleTimeString('en-US',{hour12:false})}</div>`:''}
+        ${s.blockedAt?`<div class="info-row"><b>Blocked at:</b> ${new Date(s.blockedAt).toLocaleTimeString('en-US',{hour12:false})}</div>`:''}
+        <div class="info-row"><b>Last activity:</b> ${s.lastActivity?new Date(s.lastActivity).toLocaleTimeString('en-US',{hour12:false}):'—'}</div>
+      </div>
+
+      <!-- ACTION BUTTONS -->
+      <div class="action-btns">
+        ${s.status==='blocked'?`<button class="act-btn ab-relogin" onclick="grantRelogin('${id}')">🔓 Re-Login Allow Karein</button>`:''}
+        ${s.status!=='blocked'?`<button class="act-btn ab-block" onclick="blockStudent('${id}')">🚫 Block Karein</button>`:''}
+        <button class="act-btn ab-view" onclick="scrollTo('#code-sec')">💻 Code Dekhein</button>
+        ${s.status==='submitted'?`<button class="act-btn ab-download" onclick="downloadWork('${id}')">📥 Download Work</button>`:''}
+      </div>
+    </div>
+
+    <!-- VIOLATIONS -->
+    <div class="detail-card">
+      <div class="dc-title"><span class="dt-icon">⚠️</span> Violation Timeline (${vcount} violations)</div>
+      ${vcount===0
+        ? `<div class="no-violations">✅ No violations — Student properly focused</div>`
+        : `<div class="v-timeline">${violations.map((v,i)=>{
+            const vtime=v.time?new Date(v.time).toLocaleTimeString('en-US',{hour12:false}):'—';
+            return `<div class="v-entry">
+              <div class="v-ts">⚠${i+1} [${vtime}]</div>
+              <div class="v-detail">
+                <div class="v-msg">${esc(v.msg||'Unknown violation')}</div>
+                <div class="v-ctx">
+                  Components: ${esc(v.components||'—')} · Code lines: ${v.codeLines||0}
+                  ${v.simRunning?'· 🔴 Sim was running':'· ⬜ Sim was stopped'}
+                  ${v.lastCodeLines?`<br/>Last code: ${esc(v.lastCodeLines)}`:''}
+                </div>
+              </div>
+            </div>`;
+          }).join('')}</div>`}
+    </div>
+
+    <!-- COMPONENTS -->
+    ${comps.length>0?`<div class="detail-card">
+      <div class="dc-title"><span class="dt-icon">🔌</span> Circuit Components (${comps.length})</div>
+      <div class="comp-chips">${comps.map(c=>`<div class="comp-chip">${esc(c.name||c.type)}${c.pin?` P${c.pin}`:''}</div>`).join('')}</div>
+    </div>`:''}
+
+    <!-- CODE -->
+    <div class="detail-card" id="code-sec">
+      <div class="dc-title"><span class="dt-icon">💻</span> Code (${s.codeLines||0} lines)</div>
+      ${s.code?`<div class="code-view">${esc(s.code)}</div>`:'<div style="color:var(--muted);font-size:13px;font-family:JetBrains Mono,monospace">Code abhi available nahi hai</div>'}
+    </div>
+  `;
+}
+
+// ── ACTIONS ────────────────────────────────────────────────
+function grantRelogin(id) {
+  if (!confirm(`${sessions[id]?.name} ko re-login allow karein?`)) return;
+  if (db) {
+    db.ref('sessions/'+id).update({ reloginGranted:true, status:'relogin_allowed', blockedAt:null, violationCount:0 })
+      .then(()=>showNotif(`✅ ${sessions[id]?.name} ko re-login allowed`))
+      .catch(()=>showNotif('❌ Error — Firebase check karein'));
+    // Also delete old session violations so they can start fresh
+    db.ref('sessions/'+id+'/violations').remove().catch(()=>{});
+  } else {
+    sessions[id].status='active'; sessions[id].violationCount=0; sessions[id].reloginGranted=true;
+    renderStudents(); updateStats(); renderDetail(id);
+    showNotif(`✅ ${sessions[id]?.name} ko re-login allowed (demo)`);
+  }
+}
+
+function blockStudent(id) {
+  if (!confirm(`${sessions[id]?.name} ko manually block karein?`)) return;
+  if (db) {
+    db.ref('sessions/'+id).update({ status:'blocked', manualBlock:true, blockedAt:Date.now() })
+      .then(()=>showNotif(`🚫 ${sessions[id]?.name} blocked`)).catch(()=>{});
+  } else {
+    sessions[id].status='blocked'; renderStudents(); updateStats(); renderDetail(id);
+    showNotif(`🚫 ${sessions[id]?.name} blocked (demo)`);
+  }
+}
+
+function downloadWork(id) {
+  const s = sessions[id]; if(!s) return;
+  const comps = s.components ? (Array.isArray(s.components)?s.components:Object.values(s.components)) : [];
+  const txt = `IoT LAB SUBMISSION REPORT
+============================
+Lab: ${LAB_NAME}
+Student: ${s.name}
+Roll No: ${s.rollNo}
+Submit Time: ${s.submitTime?new Date(s.submitTime).toLocaleString():'—'}
+Login Time: ${s.loginTime?new Date(s.loginTime).toLocaleString():'—'}
+Violations: ${s.violationCount||0}
+
+COMPONENTS USED:
+${comps.map(c=>`  - ${c.name||c.type}${c.pin?' (Pin '+c.pin+')':''}`).join('\n') || '  (none)'}
+
+ARDUINO CODE:
+${s.code||'(no code)'}
+
+VIOLATION LOG:
+${(s.violations?Object.values(s.violations):[]).map((v,i)=>`  ${i+1}. [${v.time?new Date(v.time).toLocaleString():'—'}] ${v.msg}`).join('\n')||'  (no violations)'}
+`;
+  const blob = new Blob([txt],{type:'text/plain'});
+  const a = document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`${(s.rollNo||'student').replace(/\W/g,'_')}_submission.txt`;
+  a.click();
+  showNotif(`📥 ${s.name} ka work download ho raha hai`);
+}
+
+function exportCSV() {
+  const rows = [['Name','Roll No','Status','Violations','Components','Code Lines','Login Time','Submit Time']];
+  Object.values(sessions).forEach(s=>{
+    rows.push([s.name||'',s.rollNo||'',s.status||'',s.violationCount||0,s.componentCount||0,s.codeLines||0,s.loginTime?new Date(s.loginTime).toLocaleString():'',s.submitTime?new Date(s.submitTime).toLocaleString():'']);
+  });
+  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`iot_lab_report_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+  showNotif('📊 CSV report download ho rahi hai');
+}
+
+// ── UTILS ──────────────────────────────────────────────────
+function showNotif(msg) {
+  const n=document.getElementById('notif');n.textContent=msg;n.classList.add('show');
+  setTimeout(()=>n.classList.remove('show'),3000);
+}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+</script>
+</body>
+</html>
