@@ -1,0 +1,2186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>IoT Simulation Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet"/>
+<style>
+/* ═══════════════════════════════════════════════
+   TEACHER CONFIG — Yahan se sab change karein
+   ═══════════════════════════════════════════════ */
+:root{
+  --accent:#1a237e; --accent2:#1565c0; --green:#2e7d32;
+  --red:#c62828; --warn:#e65100; --bg:#dfe6ee;
+  --panel:#fff; --border:#cdd5de; --canvas:#d8e2ec;
+  --text:#1a2332; --muted:#607080;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;font-family:'Rajdhani',sans-serif;background:var(--bg);color:var(--text)}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:#a0b0c0;border-radius:3px}
+
+/* ── SCREENS ── */
+.screen{position:fixed;inset:0;display:none;z-index:1000;align-items:center;justify-content:center}
+.screen.on{display:flex}
+
+/* ── LOGIN ── */
+#sLogin{background:linear-gradient(135deg,#0a1060,#1565c0,#006064)}
+.lcard{background:#fff;border-radius:16px;padding:40px 46px;width:440px;max-width:92vw;box-shadow:0 24px 60px rgba(0,0,0,.4)}
+.lcard h1{text-align:center;font-size:22px;font-weight:700;color:var(--accent);margin-bottom:4px}
+.lcard .sub{text-align:center;font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:22px}
+.warn-box{background:#fff8e1;border:1px solid #ffcc80;border-radius:9px;padding:10px 14px;font-size:12px;color:#e65100;margin-bottom:20px;line-height:1.5}
+.fld{margin-bottom:14px}
+.fld label{display:block;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:5px}
+.fld input{width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:'Rajdhani',sans-serif;background:#f7f9fc;color:var(--text)}
+.fld input:focus{outline:none;border-color:var(--accent2);background:#fff}
+.lerr{background:#ffebee;border:1px solid #ffcdd2;border-radius:7px;padding:8px 13px;color:#c62828;font-size:12px;margin-bottom:12px;display:none}
+.lbtn{width:100%;padding:12px;background:linear-gradient(135deg,#1a237e,#1565c0);border:none;border-radius:9px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:'Rajdhani',sans-serif;letter-spacing:.3px}
+.lbtn:hover{filter:brightness(1.1)}
+.facdiv{text-align:center;margin-top:12px;font-size:12px;color:var(--muted)}
+.facdiv a{color:var(--accent2);font-weight:700;text-decoration:none}
+
+/* ── BLOCKED ── */
+#sBlocked{background:#0a0000;flex-direction:column}
+.bcard{background:#fff;border-radius:14px;padding:32px;max-width:480px;width:92%;text-align:center}
+.bcard .bi{font-size:64px;display:block;margin-bottom:14px}
+.bcard h2{color:#c62828;font-size:24px;margin-bottom:8px}
+.bcard p{color:#777;font-size:13px;line-height:1.6;margin-bottom:16px}
+.binfo{background:#fff5f5;border:1px solid #ffcdd2;border-radius:8px;padding:12px;text-align:left;margin-bottom:12px}
+.brow{font-size:11px;color:#8d3030;font-family:'JetBrains Mono',monospace;margin-bottom:4px}
+.vlogbox{background:#1a0000;border-radius:7px;padding:10px;max-height:140px;overflow-y:auto;text-align:left}
+.vlogitem{font-size:10px;color:#cc8888;margin-bottom:2px;font-family:'JetBrains Mono',monospace}
+.relogin-note{margin-top:14px;padding:10px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:7px;font-size:12px;color:#2e7d32;display:none}
+
+/* ── VIOLATION BANNER ── */
+#vBanner{position:fixed;top:0;left:0;right:0;z-index:9999;transform:translateY(-100%);transition:transform .3s}
+.vb{background:linear-gradient(90deg,#b71c1c,#d32f2f);padding:9px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #ef5350}
+.vbmsg{font-size:13px;color:#fff;font-weight:700}
+.vbx{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:4px;padding:2px 9px;cursor:pointer;font-size:11px}
+.vbar{height:3px;background:#ef5350;animation:vbar 5s linear forwards}
+@keyframes vbar{from{width:100%}to{width:0%}}
+#vBanner.show{transform:translateY(0)}
+
+/* ── LAB ── */
+#sLab{flex-direction:column;align-items:stretch;background:var(--bg)}
+#sLab.on{display:flex}
+
+/* Topbar */
+.topbar{height:48px;background:#1a237e;display:flex;align-items:center;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.tb-brand{padding:0 14px;border-right:1px solid rgba(255,255,255,.15);height:100%;display:flex;align-items:center;gap:7px;font-size:15px;font-weight:700;color:#fff;white-space:nowrap}
+.tb-tabs{display:flex;height:100%}
+.tbtab{height:100%;padding:0 15px;background:none;border:none;border-bottom:3px solid transparent;color:rgba(255,255,255,.55);font-size:13px;font-weight:600;font-family:'Rajdhani',sans-serif;cursor:pointer}
+.tbtab:hover{color:#fff;background:rgba(255,255,255,.07)}
+.tbtab.active{color:#fff;border-bottom-color:#64b5f6}
+.tb-mid{flex:1;display:flex;align-items:center;justify-content:center;gap:8px}
+.sbtn{display:flex;align-items:center;gap:5px;padding:6px 16px;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Rajdhani',sans-serif}
+.sbtn-run{background:#2e7d32;color:#fff;border:1px solid #388e3c}
+.sbtn-stop{background:#c62828;color:#fff;border:1px solid #d32f2f}
+.simdot{width:7px;height:7px;border-radius:50%;background:#546e7a}
+.simdot.on{background:#4caf50;box-shadow:0 0 8px #4caf50;animation:blink .8s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.tb-right{display:flex;align-items:center;gap:7px;padding:0 10px;border-left:1px solid rgba(255,255,255,.15)}
+.chip{background:rgba(255,255,255,.1);border-radius:6px;padding:4px 10px;font-size:11px;color:#fff}
+.chip .n{font-weight:700}.chip .r{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,.6)}
+.tclock{font-family:'JetBrains Mono',monospace;font-size:12px;color:#ffcc80;background:rgba(255,200,0,.12);border:1px solid rgba(255,200,0,.3);border-radius:5px;padding:3px 8px}
+.livedot{display:flex;align-items:center;gap:4px;font-size:10px;color:#ef9a9a;font-family:'JetBrains Mono',monospace;background:rgba(229,57,53,.15);border:1px solid rgba(229,57,53,.3);border-radius:5px;padding:3px 8px}
+.livedot span{width:6px;height:6px;border-radius:50%;background:#ef5350;animation:blink .7s infinite}
+.vcbadge{font-size:11px;font-family:'JetBrains Mono',monospace;padding:3px 8px;border-radius:5px;background:rgba(255,152,0,.15);border:1px solid rgba(255,152,0,.3);color:#ffcc80}
+.subbtn{background:#1b5e20;color:#a5d6a7;border:1px solid #388e3c;border-radius:5px;padding:4px 11px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Rajdhani',sans-serif}
+.subbtn:hover{background:#2e7d32;color:#fff}
+
+/* Main area */
+.main{flex:1;display:flex;overflow:hidden}
+
+/* ── PALETTE ── */
+.palette{width:210px;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.pal-top{padding:8px 9px 6px;border-bottom:1px solid var(--border);flex-shrink:0}
+.pal-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;font-family:'JetBrains Mono',monospace;margin-bottom:6px}
+.pal-search{width:100%;padding:6px 9px;border:1.5px solid var(--border);border-radius:6px;font-size:11px;font-family:'JetBrains Mono',monospace;background:#f7f9fc}
+.pal-search:focus{outline:none;border-color:var(--accent2)}
+.pal-cats{display:flex;flex-wrap:wrap;gap:2px;padding:5px 8px;border-bottom:1px solid var(--border);flex-shrink:0}
+.catbtn{padding:2px 6px;font-size:9px;border-radius:3px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;font-family:'JetBrains Mono',monospace}
+.catbtn:hover,.catbtn.on{background:#e3f2fd;border-color:#90caf9;color:var(--accent2);font-weight:700}
+.pal-list{flex:1;overflow-y:auto;padding:4px}
+.palsep{padding:4px 7px 1px;font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:700;font-family:'JetBrains Mono',monospace}
+.palitem{display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:6px;border:1.5px solid transparent;cursor:grab;margin-bottom:2px;background:#f7f9fc;transition:all .1s}
+.palitem:hover{border-color:#90caf9;background:#e8f4fd;transform:translateX(2px)}
+.palitem:active{cursor:grabbing}
+.piic{font-size:16px;width:22px;text-align:center;flex-shrink:0}
+.piname{font-size:11px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pidesc{font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace}
+
+/* ── TAB PANELS ── */
+.tabpanel{display:none;flex:1;overflow:hidden}
+.tabpanel.on{display:flex}
+
+/* ── CIRCUIT ── */
+#tCircuit{position:relative}
+.ctopdiv{position:absolute;top:8px;right:10px;z-index:100;display:flex;gap:6px}
+.ctopbtn{padding:5px 11px;background:#fff;border:1.5px solid var(--border);border-radius:6px;font-size:11px;cursor:pointer;font-family:'JetBrains Mono',monospace;color:var(--muted);box-shadow:0 2px 6px rgba(0,0,0,.1)}
+.ctopbtn:hover{border-color:var(--accent2);color:var(--accent2)}
+.ctopbtn.wire-on{background:#e3f2fd;border-color:#1565c0;color:#1565c0;font-weight:700}
+.cwrap{flex:1;overflow:auto;position:relative;
+  background-color:var(--canvas);
+  background-image:linear-gradient(rgba(80,120,180,.11) 1px,transparent 1px),linear-gradient(90deg,rgba(80,120,180,.11) 1px,transparent 1px);
+  background-size:25px 25px}
+.cwrap.wmcursor{cursor:crosshair}
+.cinner{position:relative;width:2800px;height:2000px}
+.chint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;opacity:.25}
+.chint .ci{font-size:48px;margin-bottom:10px}
+.chint .ct{font-size:15px;color:var(--muted);font-weight:600}
+.chint .cs{font-size:11px;color:var(--muted);margin-top:5px;font-family:'JetBrains Mono',monospace}
+
+/* Wire hint bar */
+.wire-hint{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#1a237e;color:#fff;border-radius:18px;padding:7px 18px;font-size:12px;font-weight:600;font-family:'JetBrains Mono',monospace;z-index:500;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.3);display:none}
+.wire-hint.on{display:block}
+
+/* SVG wire layer */
+#wLayer{position:absolute;inset:0;pointer-events:none;z-index:3;overflow:visible}
+.wire-line{pointer-events:stroke;cursor:pointer;fill:none}
+.wire-line:hover{stroke-width:5!important}
+.wire-preview{fill:none;stroke-dasharray:8,5;pointer-events:none;opacity:.8}
+
+/* Components */
+.ccomp{position:absolute;cursor:move;user-select:none;z-index:5;overflow:visible}
+/* Selection controls */
+.selbar{position:absolute;top:-36px;left:50%;transform:translateX(-50%);background:#fff;border:1.5px solid var(--border);border-radius:7px;padding:4px 9px;display:flex;gap:7px;align-items:center;white-space:nowrap;box-shadow:0 3px 12px rgba(0,0,0,.14);z-index:200;font-size:11px;color:var(--muted)}
+.sc-del{background:#ffebee;border:1px solid #ffcdd2;color:#c62828;border-radius:4px;cursor:pointer;padding:2px 8px;font-size:11px}
+.sc-del:hover{background:#f44336;color:#fff}
+
+/* ── PIN DOTS ── */
+.pindot{position:absolute;width:11px;height:11px;border-radius:50%;border:2.5px solid #ff8f00;background:#ffc107;cursor:crosshair;z-index:30;transform:translate(-50%,-50%);opacity:0;transition:opacity .15s,transform .1s;pointer-events:all}
+.ccomp:hover .pindot,.ccomp.sel .pindot{opacity:1}
+.pindot:hover{transform:translate(-50%,-50%) scale(1.6);background:#ff5722;border-color:#bf360c}
+.pindot.pfrom{opacity:1;background:#ff5722;border-color:#bf360c;box-shadow:0 0 10px #ff5722;animation:pfrom .6s infinite alternate}
+@keyframes pfrom{from{box-shadow:0 0 4px #ff5722}to{box-shadow:0 0 16px #ff5722,0 0 32px #ff572244}}
+/* Wire mode — show all pins */
+.wm-active .pindot{opacity:.6}
+.wm-active .pindot:hover{opacity:1;transform:translate(-50%,-50%) scale(1.6);background:#4caf50;border-color:#1b5e20}
+/* Pin label tooltip */
+.ptip{position:absolute;bottom:13px;left:50%;transform:translateX(-50%);background:#1a237e;color:#fff;font-size:7.5px;font-family:'JetBrains Mono',monospace;padding:1px 4px;border-radius:3px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .1s}
+.pindot:hover .ptip{opacity:1}
+
+/* ── WIRE CONNECTIONS PANEL ── */
+.wpanel{position:absolute;top:48px;right:0;width:230px;background:#fff;border-left:1px solid var(--border);border-bottom:1px solid var(--border);border-radius:0 0 0 10px;box-shadow:-4px 4px 12px rgba(0,0,0,.1);z-index:200;display:none}
+.wpanel.on{display:block}
+.wphdr{background:var(--accent);color:#fff;padding:7px 12px;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:space-between;border-radius:0 0 0 0}
+.wplist{max-height:220px;overflow-y:auto;padding:5px}
+.wpitem{display:flex;align-items:center;gap:6px;padding:4px 7px;border-radius:5px;font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;border:1px solid var(--border);margin-bottom:2px;background:#f7f9fc}
+.wpdot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.wpdel{margin-left:auto;background:none;border:none;color:#f44336;cursor:pointer;font-size:13px}
+.wpdel:hover{color:#b71c1c}
+.wpempty{padding:14px;text-align:center;font-size:11px;color:var(--muted)}
+
+/* ── CODE ── */
+#tCode{flex-direction:column}
+.codebar{height:38px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:4px;padding:0 10px;flex-shrink:0;overflow-x:auto}
+.snipbtn{padding:3px 9px;border:1px solid var(--border);border-radius:4px;background:none;color:var(--muted);font-size:10px;cursor:pointer;font-family:'JetBrains Mono',monospace;white-space:nowrap}
+.snipbtn:hover{border-color:var(--accent2);color:var(--accent2);background:#e3f2fd}
+.codearea{flex:1;display:flex;background:#1e1e2e;overflow:hidden}
+.lnums{width:42px;background:#13131e;padding:8px 6px 8px 0;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.65;color:#3d3d5c;user-select:none;border-right:1px solid #2a2a3e;overflow:hidden;flex-shrink:0}
+#ceditor{flex:1;padding:8px 12px;background:transparent;border:none;color:#cdd6f4;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.65;resize:none;tab-size:2;white-space:pre;overflow:auto}
+#ceditor:focus{outline:none}
+
+/* ── SERIAL ── */
+#tSerial{flex-direction:column}
+.serbar{height:38px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;padding:0 12px;flex-shrink:0}
+.sertitle{font-size:12px;font-weight:700;color:var(--muted);font-family:'JetBrains Mono',monospace}
+.serbadge{font-size:10px;font-family:'JetBrains Mono',monospace;padding:2px 7px;border-radius:4px;background:#e3f2fd;border:1px solid #90caf9;color:var(--accent2)}
+.sclr{margin-left:auto;padding:3px 10px;border:1px solid var(--border);background:none;border-radius:4px;color:var(--muted);font-size:11px;cursor:pointer}
+.sout{flex:1;background:#0d1117;overflow-y:auto;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.8}
+.sl{display:flex;gap:10px;padding:1px 3px;border-radius:3px}
+.sl:hover{background:rgba(255,255,255,.03)}
+.sl-ts{color:#30363d;min-width:55px;flex-shrink:0}
+.sl-t{color:#58a6ff}.sl-s{color:#56d364}.sl-w{color:#d29922}.sl-e{color:#f85149}.sl-p{color:#bc8cff}
+
+/* ── SUBMIT MODAL ── */
+.movlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:8000;display:none;align-items:center;justify-content:center}
+.movlay.on{display:flex}
+.mbox{background:#fff;border-radius:14px;padding:32px;max-width:420px;width:92%;text-align:center}
+.mbox h2{font-size:21px;margin-bottom:9px}
+.mbox p{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:22px}
+.mbtns{display:flex;gap:10px;justify-content:center}
+.mok{padding:10px 24px;background:var(--accent2);color:#fff;border:none;border-radius:7px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Rajdhani',sans-serif}
+.mok:hover{background:var(--accent)}
+.mcancel{padding:10px 24px;background:#f5f5f5;color:var(--muted);border:1px solid var(--border);border-radius:7px;font-size:14px;cursor:pointer;font-family:'Rajdhani',sans-serif}
+
+/* ── SIMULATION ── */
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes glow-r{from{box-shadow:0 0 3px #f44336}to{box-shadow:0 0 16px #f44336,0 0 32px #f4433655}}
+@keyframes glow-g{from{box-shadow:0 0 3px #4caf50}to{box-shadow:0 0 16px #4caf50,0 0 32px #4caf5055}}
+@keyframes glow-b{from{box-shadow:0 0 3px #2196f3}to{box-shadow:0 0 16px #2196f3,0 0 32px #2196f355}}
+@keyframes glow-y{from{box-shadow:0 0 3px #ffc107}to{box-shadow:0 0 16px #ffc107,0 0 32px #ffc10755}}
+@keyframes glow-w{from{box-shadow:0 0 3px #bdbdbd}to{box-shadow:0 0 14px #bdbdbd,0 0 28px #bdbdbd55}}
+@keyframes glow-p{from{box-shadow:0 0 3px #9c27b0}to{box-shadow:0 0 16px #9c27b0,0 0 32px #9c27b055}}
+@keyframes glow-o{from{box-shadow:0 0 3px #ff9800}to{box-shadow:0 0 14px #ff9800,0 0 28px #ff980055}}
+.gl-r{animation:glow-r .4s ease-in-out infinite alternate}
+.gl-g{animation:glow-g .4s ease-in-out infinite alternate}
+.gl-b{animation:glow-b .4s ease-in-out infinite alternate}
+.gl-y{animation:glow-y .4s ease-in-out infinite alternate}
+.gl-w{animation:glow-w .4s ease-in-out infinite alternate}
+.gl-p{animation:glow-p .4s ease-in-out infinite alternate}
+.gl-o{animation:glow-o .5s ease-in-out infinite alternate}
+</style>
+</head>
+<body>
+
+<!-- ══ VIOLATION BANNER ══ -->
+<div id="vBanner">
+  <div class="vb"><span class="vbmsg" id="vbmsg">⚠ Violation</span><button class="vbx" onclick="hideVB()">✕</button></div>
+  <div class="vbar" id="vbar"></div>
+</div>
+
+<!-- ══ WIRE HINT ══ -->
+<div class="wire-hint" id="wireHint">🔗 Wire Mode ON — Pin pe click karein · ESC se cancel</div>
+
+<!-- ══ WIRE PANEL ══ -->
+<div class="wpanel" id="wPanel">
+  <div class="wphdr"><span>🔗 Connections (<span id="wCount">0</span>)</span><button onclick="toggleWPanel()" style="background:none;border:none;color:#fff;cursor:pointer;font-size:14px">✕</button></div>
+  <div class="wplist" id="wpList"></div>
+</div>
+
+<!-- ══ SUBMIT MODAL ══ -->
+<div class="movlay" id="subModal">
+  <div class="mbox">
+    <h2>📤 Submit Karein?</h2>
+    <p>Circuit aur code submit karne ke baad changes nahi ho sakte.<br/>Kya aap sure hain?</p>
+    <div class="mbtns">
+      <button class="mok" onclick="doSubmit()">✔ Submit</button>
+      <button class="mcancel" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     LOGIN SCREEN
+═══════════════════════════════════════════ -->
+<div class="screen on" id="sLogin">
+  <div class="lcard">
+    <h1 id="ltitle">⚡ IoT Simulation Lab</h1>
+    <div class="sub" id="lsub">// Proctored Examination Environment</div>
+    <div class="warn-box">⚠️ <b>Rules:</b> Tab switch · Minimize · DevTools · Right-click karna <b>MANA hai</b>. 3 violations = <b>Permanent session block</b> (teacher reset karega)</div>
+    <div class="fld"><label>Student Ka Naam</label><input type="text" id="iname" placeholder="Apna poora naam likhein" autocomplete="off"/></div>
+    <div class="fld"><label>Roll No / Registration ID</label><input type="text" id="iid" placeholder="e.g. CS2024-001" autocomplete="off"/></div>
+    <div class="fld"><label>Exam Password</label><input type="password" id="ipass" placeholder="Teacher dwara diya gaya password"/></div>
+    <div class="lerr" id="lerr"></div>
+    <button class="lbtn" onclick="doLogin()">🔓 Lab Mein Enter Karein</button>
+    <div class="facdiv"><a href="faculty.html" target="_blank">👨‍🏫 Faculty Dashboard →</a></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     BLOCKED SCREEN
+═══════════════════════════════════════════ -->
+<div class="screen" id="sBlocked">
+  <div class="bcard">
+    <span class="bi">🚫</span>
+    <h2>Session Permanently Blocked</h2>
+    <p>Maximum violations exceed ho gaye.<br/>Aapka session permanently block kar diya gaya hai.<br/>Teacher se re-login permission lein.</p>
+    <div class="binfo" id="binfo"></div>
+    <div class="vlogbox" id="bvlog"></div>
+    <div class="relogin-note" id="reloginNote">✅ Teacher ne re-login allow kar diya! Page refresh karein.</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     LAB SCREEN
+═══════════════════════════════════════════ -->
+<div class="screen" id="sLab">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="tb-brand">⚡ IoT Lab</div>
+    <div class="tb-tabs">
+      <button class="tbtab active" onclick="switchTab('Circuit',this)">🔌 Circuit</button>
+      <button class="tbtab" onclick="switchTab('Code',this)">💻 Code</button>
+      <button class="tbtab" onclick="switchTab('Serial',this)">📟 Serial</button>
+    </div>
+    <div class="tb-mid">
+      <button class="sbtn sbtn-run" id="btnRun" onclick="startSim()">▶ Start</button>
+      <button class="sbtn sbtn-stop" id="btnStop" style="display:none" onclick="stopSim()">■ Stop</button>
+      <div class="simdot" id="simDot"></div>
+      <span style="font-size:11px;color:rgba(255,255,255,.5);font-family:'JetBrains Mono',monospace" id="simSt">Ready</span>
+    </div>
+    <div class="tb-right">
+      <div class="chip"><div class="n" id="dName">—</div><div class="r" id="dId">—</div></div>
+      <div class="tclock" id="clock">00:00</div>
+      <div class="livedot"><span></span>LIVE</div>
+      <div class="vcbadge" id="vcbadge">V: 0/3</div>
+      <button class="subbtn" onclick="document.getElementById('subModal').classList.add('on')">📤 Submit</button>
+    </div>
+  </div>
+
+  <!-- MAIN AREA -->
+  <div class="main">
+    <!-- PALETTE -->
+    <div class="palette">
+      <div class="pal-top">
+        <div class="pal-label">// Components</div>
+        <input class="pal-search" placeholder="🔍 Search..." oninput="filterPal(this.value)"/>
+      </div>
+      <div class="pal-cats" id="palCats"></div>
+      <div class="pal-list" id="palList"></div>
+    </div>
+
+    <!-- CIRCUIT TAB -->
+    <div class="tabpanel on" id="tCircuit">
+      <div class="ctopdiv">
+        <button class="ctopbtn" id="wireToggleBtn" onclick="toggleWireMode()">🔗 Wire Mode: OFF</button>
+        <button class="ctopbtn" onclick="toggleWPanel()">📋 Connections (<span id="wCountTop">0</span>)</button>
+        <button class="ctopbtn" onclick="clearAllWires()" style="color:#c62828;border-color:#ffcdd2">🗑 Wires Clear</button>
+      </div>
+      <div class="cwrap" id="cwrap"
+        ondragover="event.preventDefault();event.dataTransfer.dropEffect='copy'"
+        ondrop="onDrop(event)"
+        onmousemove="onCanvasMouseMove(event)"
+        onclick="onCanvasClick(event)">
+        <svg id="wLayer" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div class="cinner" id="cinner">
+          <div class="chint" id="chint">
+            <div class="ci">🔌</div>
+            <div class="ct">Components yahan drag karein</div>
+            <div class="cs">Left se drag · Pin click → Wire · ▶ Simulate</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CODE TAB -->
+    <div class="tabpanel" id="tCode">
+      <div class="codebar">
+        <button class="snipbtn" onclick="snip('blink')">LED Blink</button>
+        <button class="snipbtn" onclick="snip('serial')">Serial</button>
+        <button class="snipbtn" onclick="snip('servo')">Servo</button>
+        <button class="snipbtn" onclick="snip('dht')">DHT11</button>
+        <button class="snipbtn" onclick="snip('ultra')">Ultrasonic</button>
+        <button class="snipbtn" onclick="snip('lcd')">LCD</button>
+        <button class="snipbtn" onclick="snip('pir')">PIR</button>
+        <button class="snipbtn" onclick="snip('analog')">AnalogRead</button>
+        <button class="snipbtn" style="margin-left:auto;color:#c62828;border-color:#ffcdd2" onclick="document.getElementById('ceditor').value='';syncLN()">🗑 Clear</button>
+      </div>
+      <div class="codearea">
+        <div class="lnums" id="lnums">1</div>
+        <textarea id="ceditor" spellcheck="false" oninput="syncLN()" onkeydown="codeKey(event)"></textarea>
+      </div>
+    </div>
+
+    <!-- SERIAL TAB -->
+    <div class="tabpanel" id="tSerial">
+      <div class="serbar">
+        <span class="sertitle">// Serial Monitor</span>
+        <span class="serbadge">9600 baud</span>
+        <span class="serbadge" id="serCount">0 lines</span>
+        <button class="sclr" onclick="clearSerial()">🗑 Clear</button>
+      </div>
+      <div class="sout" id="sout"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<script>
+// ╔══════════════════════════════════════════╗
+// ║   TEACHER CONFIG — Yahan se change karein ║
+// ╚══════════════════════════════════════════╝
+const CFG = {
+  examPass: "iot2024",          // Student password
+  facPass:  "faculty@123",      // Faculty password
+  resetCode:"RESET123",         // URL reset: ?reset=RESET123&id=ROLLNO
+  labName:  "IoT Practical Lab",
+  teacher:  "Prof. Sharma",
+  maxV:     3                   // Max violations before permanent block
+};
+
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR.firebaseapp.com",
+  databaseURL: "https://YOUR-default-rtdb.firebaseio.com",
+  projectId: "YOUR",
+  storageBucket: "YOUR.appspot.com",
+  messagingSenderId: "ID",
+  appId: "APP_ID"
+};
+
+// ╔══════════════════════════════════════════╗
+// ║   PERMANENT BLOCK — localStorage based    ║
+// ║   Roll number store hota hai browser mein ║
+// ║   Tab switch ke baad bhi login nahi hoga  ║
+// ╚══════════════════════════════════════════╝
+const BLOCK_KEY = 'iot_perm_blocked_v2'; // localStorage key
+
+function getBlockedList() {
+  try { return JSON.parse(localStorage.getItem(BLOCK_KEY) || '{}'); } catch { return {}; }
+}
+function isBlocked(rollNo) {
+  const list = getBlockedList();
+  return !!list[rollNo.trim().toUpperCase()];
+}
+function setBlocked(rollNo, name, vlog) {
+  const list = getBlockedList();
+  list[rollNo.trim().toUpperCase()] = { name, vlog, time: new Date().toISOString() };
+  localStorage.setItem(BLOCK_KEY, JSON.stringify(list));
+}
+function removeBlock(rollNo) {
+  const list = getBlockedList();
+  delete list[rollNo.trim().toUpperCase()];
+  localStorage.setItem(BLOCK_KEY, JSON.stringify(list));
+}
+function getBlockInfo(rollNo) {
+  return getBlockedList()[rollNo.trim().toUpperCase()] || null;
+}
+
+// ╔══════════════════════════════════════════╗
+// ║   URL RESET — ?reset=RESET123&id=ROLLNO   ║
+// ╚══════════════════════════════════════════╝
+(function checkURLReset() {
+  const p = new URLSearchParams(location.search);
+  if (p.get('reset') === CFG.resetCode && p.get('id')) {
+    const id = p.get('id').trim().toUpperCase();
+    removeBlock(id);
+    // Also clear Firebase block
+    if (db) db.ref('blocked/' + id.replace(/[^a-zA-Z0-9]/g,'_')).remove();
+    alert(`✅ Roll No ${id} ka block remove kar diya gaya!`);
+    history.replaceState({}, '', location.pathname);
+  }
+})();
+
+// ══ DB ══
+let db = null;
+try {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+} catch(e) { console.log('Firebase not configured — demo mode'); }
+
+// ══ STATE ══
+let student = null, sessionId = null;
+let violations = 0, vlog = [];
+let labSec = 0, labInt = null;
+let running = false, simHandle = null, simSec = 0;
+let comps = [], selId = null, nextId = 1;
+let wires = [], nextWireId = 1;
+let wireFrom = null; // {compId, pinId, label, x, y} — first pin selected
+let wireMode = false;
+let serialLines = [], simState = {};
+let submitted = false, dragType = null;
+
+// ══════════════════════════════════════════
+// PALETTE COMPONENTS
+// ══════════════════════════════════════════
+const PALETTE = [
+  // Basic
+  {t:'arduino',   n:'Arduino Uno R3',  cat:'Basic',   w:296,h:172, ic:'🟦', d:'ATmega328P'},
+  {t:'breadboard',n:'Breadboard',      cat:'Basic',   w:330,h:148, ic:'⬜', d:'830 ties'},
+  {t:'microbit',  n:'micro:bit',       cat:'Basic',   w:118,h:132, ic:'🔵', d:'BBC micro:bit'},
+  // Passive
+  {t:'resistor',  n:'Resistor',        cat:'Passive', w:100,h:40,  ic:'〰️',d:'220Ω'},
+  {t:'cap',       n:'Capacitor',       cat:'Passive', w:48, h:80,  ic:'⚡', d:'Non-polar'},
+  {t:'pcap',      n:'Polar Capacitor', cat:'Passive', w:48, h:80,  ic:'⚡', d:'Electrolytic'},
+  {t:'diode',     n:'Diode 1N4007',    cat:'Passive', w:88, h:40,  ic:'▶️', d:'Rectifier diode'},
+  {t:'zener',     n:'Zener Diode',     cat:'Passive', w:88, h:40,  ic:'↕️', d:'5.1V'},
+  // Input
+  {t:'button',    n:'Pushbutton',      cat:'Input',   w:58, h:66,  ic:'⬛', d:'Tactile switch'},
+  {t:'pot',       n:'Potentiometer',   cat:'Input',   w:74, h:82,  ic:'🎛️',d:'10kΩ rotary'},
+  {t:'slideswitch',n:'Slideswitch',   cat:'Input',   w:68, h:48,  ic:'🔀', d:'SPDT slide'},
+  {t:'ldr',       n:'Photoresistor',   cat:'Input',   w:58, h:66,  ic:'☀️', d:'Light dependent'},
+  {t:'ir_sensor', n:'IR Sensor',       cat:'Input',   w:78, h:66,  ic:'📻', d:'TCRT5000'},
+  {t:'ultrasonic',n:'HC-SR04',         cat:'Input',   w:110,h:70,  ic:'📡', d:'Ultrasonic range'},
+  {t:'pir',       n:'PIR Sensor',      cat:'Input',   w:80, h:80,  ic:'👁️',d:'Motion detection'},
+  {t:'soil',      n:'Soil Moisture',   cat:'Input',   w:74, h:88,  ic:'🌱', d:'Capacitive sensor'},
+  {t:'dht11',     n:'DHT11',           cat:'Input',   w:66, h:90,  ic:'🌡️',d:'Temp + Humidity'},
+  {t:'dht22',     n:'DHT22',           cat:'Input',   w:66, h:90,  ic:'🌡️',d:'Precision T+H'},
+  {t:'mq2',       n:'MQ-2 Gas Sensor', cat:'Input',   w:80, h:82,  ic:'💨', d:'Smoke/Gas'},
+  {t:'touch',     n:'Touch Sensor',    cat:'Input',   w:68, h:58,  ic:'👆', d:'TTP223'},
+  {t:'joystick',  n:'Joystick',        cat:'Input',   w:78, h:86,  ic:'🕹️',d:'2-axis analog'},
+  {t:'keypad',    n:'Keypad 4×4',      cat:'Input',   w:92, h:112, ic:'⌨️', d:'Matrix keypad'},
+  // Output
+  {t:'led_r',     n:'LED Red',         cat:'Output',  w:50, h:80,  ic:'🔴', d:'5mm red'},
+  {t:'led_g',     n:'LED Green',       cat:'Output',  w:50, h:80,  ic:'🟢', d:'5mm green'},
+  {t:'led_b',     n:'LED Blue',        cat:'Output',  w:50, h:80,  ic:'🔵', d:'5mm blue'},
+  {t:'led_y',     n:'LED Yellow',      cat:'Output',  w:50, h:80,  ic:'🟡', d:'5mm yellow'},
+  {t:'led_w',     n:'LED White',       cat:'Output',  w:50, h:80,  ic:'⚪', d:'5mm white'},
+  {t:'led_rgb',   n:'LED RGB',         cat:'Output',  w:58, h:80,  ic:'🌈', d:'Common cathode'},
+  {t:'buzzer',    n:'Piezo Buzzer',    cat:'Output',  w:68, h:76,  ic:'🔔', d:'Active buzzer'},
+  {t:'servo',     n:'Servo SG90',      cat:'Output',  w:104,h:80,  ic:'⚙️', d:'Micro servo 180°'},
+  {t:'dcmotor',   n:'DC Motor',        cat:'Output',  w:78, h:86,  ic:'🔄', d:'Brushed DC'},
+  {t:'lcd',       n:'LCD 16×2',        cat:'Output',  w:158,h:84,  ic:'🖥️', d:'HD44780'},
+  {t:'lcd_i2c',   n:'LCD I2C',         cat:'Output',  w:158,h:84,  ic:'🖥️', d:'I2C 0x27'},
+  {t:'relay',     n:'Relay SPDT',      cat:'Output',  w:100,h:84,  ic:'🔌', d:'5V coil relay'},
+  {t:'seg7',      n:'7-Segment',       cat:'Output',  w:78, h:96,  ic:'📟', d:'Common cathode'},
+  {t:'neopixel',  n:'NeoPixel',        cat:'Output',  w:64, h:64,  ic:'🟣', d:'WS2812B single'},
+  // ICs
+  {t:'npn',       n:'NPN Transistor',  cat:'ICs',     w:62, h:82,  ic:'🔺', d:'2N2222'},
+  {t:'pnp',       n:'PNP Transistor',  cat:'ICs',     w:62, h:82,  ic:'🔻', d:'2N3906'},
+  {t:'ic555',     n:'555 Timer',       cat:'ICs',     w:84, h:88,  ic:'⬛', d:'NE555'},
+  {t:'lm7805',    n:'LM7805',          cat:'ICs',     w:70, h:80,  ic:'⚡', d:'5V regulator'},
+  {t:'l298n',     n:'L298N Driver',    cat:'ICs',     w:108,h:92,  ic:'🎮', d:'Dual H-Bridge'},
+  // Power
+  {t:'bat9v',     n:'9V Battery',      cat:'Power',   w:94, h:76,  ic:'🔋', d:'9V alkaline'},
+  {t:'bat15v',    n:'1.5V Battery',    cat:'Power',   w:64, h:54,  ic:'🔋', d:'AA battery'},
+  {t:'coin3v',    n:'CR2032',          cat:'Power',   w:56, h:38,  ic:'⭕', d:'3V coin cell'},
+];
+
+const CATS = ['All','Basic','Passive','Input','Output','ICs','Power'];
+let palCat = 'All', palQ = '';
+
+// ══════════════════════════════════════════
+// PIN DEFINITIONS — exact positions for wire dots
+// rx, ry = offset from component's top-left corner
+// ══════════════════════════════════════════
+function getPins(type, w, h) {
+  const mx = w / 2;
+  switch(type) {
+    case 'arduino': {
+      // Tinkercad exact layout
+      // Top digital pins: AREF GND 13 12 ~11 ~10 ~9 | gap | 8 7 ~6 ~5 4 ~3 2 TX RX
+      const dig = ['AREF','GND','13','12','~11','~10','~9','8','7','~6','~5','4','~3','2','TX','RX'];
+      const topPins = dig.map((lbl,i) => ({
+        id: lbl, label: lbl,
+        rx: 28 + i*14 + (i >= 7 ? 8 : 0),
+        ry: -8, color: lbl==='GND'?'#212121':lbl==='AREF'?'#9c27b0':'#43a047'
+      }));
+      // Bottom power pins (left side)
+      const pow = ['IOREF','RST','3V3','5V','GND','GND','VIN'];
+      const powPins = pow.map((lbl,i) => ({
+        id: `PWR_${lbl}_${i}`, label: lbl,
+        rx: 28 + i*14, ry: h+8,
+        color: (lbl==='5V'||lbl==='VIN'||lbl==='3V3')?'#e53935':lbl==='GND'?'#212121':'#9c27b0'
+      }));
+      // Bottom analog pins (right side)
+      const ana = ['A0','A1','A2','A3','A4','A5'];
+      const anaPins = ana.map((lbl,i) => ({
+        id: lbl, label: lbl,
+        rx: 196 + i*14, ry: h+8, color: '#1565c0'
+      }));
+      return [...topPins, ...powPins, ...anaPins];
+    }
+    case 'breadboard':
+      return [
+        {id:'VT',label:'+',rx:30,ry:-8,color:'#e53935'},{id:'GT',label:'-',rx:60,ry:-8,color:'#212121'},
+        {id:'VB',label:'+',rx:30,ry:h+8,color:'#e53935'},{id:'GB',label:'-',rx:60,ry:h+8,color:'#212121'},
+        {id:'J1',label:'J1',rx:90,ry:h/2},{id:'J2',label:'J2',rx:150,ry:h/2},
+        {id:'J3',label:'J3',rx:210,ry:h/2},{id:'J4',label:'J4',rx:270,ry:h/2},
+      ];
+    case 'resistor': case 'diode': case 'zener':
+      return [{id:'P',label:'1',rx:-8,ry:h/2,color:'#888'},{id:'N',label:'2',rx:w+8,ry:h/2,color:'#888'}];
+    case 'cap': case 'pcap':
+      return [{id:'P',label:'+',rx:mx,ry:-8,color:'#e53935'},{id:'N',label:'-',rx:mx,ry:h+8,color:'#212121'}];
+    case 'button':
+      return [{id:'1',label:'1',rx:12,ry:-8},{id:'2',label:'2',rx:w-12,ry:-8},{id:'3',label:'3',rx:12,ry:h+8},{id:'4',label:'4',rx:w-12,ry:h+8}];
+    case 'pot':
+      return [{id:'GND',label:'GND',rx:12,ry:h+8,color:'#212121'},{id:'W',label:'Wiper',rx:mx,ry:h+8,color:'#43a047'},{id:'VCC',label:'VCC',rx:w-12,ry:h+8,color:'#e53935'}];
+    case 'slideswitch':
+      return [{id:'A',label:'A',rx:14,ry:h+8},{id:'COM',label:'C',rx:mx,ry:h+8},{id:'B',label:'B',rx:w-14,ry:h+8}];
+    case 'ldr': case 'ir_sensor': case 'soil': case 'touch':
+      return [{id:'VCC',label:'VCC',rx:14,ry:h+8,color:'#e53935'},{id:'AO',label:'AO',rx:28,ry:h+8,color:'#43a047'},{id:'DO',label:'DO',rx:42,ry:h+8,color:'#ffc107'},{id:'GND',label:'GND',rx:w-14,ry:h+8,color:'#212121'}];
+    case 'ultrasonic':
+      return [{id:'VCC',label:'VCC',rx:16,ry:-8,color:'#e53935'},{id:'TRIG',label:'TRG',rx:34,ry:-8,color:'#ffc107'},{id:'ECHO',label:'ECH',rx:52,ry:-8,color:'#43a047'},{id:'GND',label:'GND',rx:70,ry:-8,color:'#212121'}];
+    case 'pir':
+      return [{id:'VCC',label:'VCC',rx:18,ry:h+8,color:'#e53935'},{id:'OUT',label:'OUT',rx:mx,ry:h+8,color:'#ffc107'},{id:'GND',label:'GND',rx:w-18,ry:h+8,color:'#212121'}];
+    case 'dht11': case 'dht22':
+      return [{id:'VCC',label:'VCC',rx:12,ry:h+8,color:'#e53935'},{id:'SIG',label:'SIG',rx:28,ry:h+8,color:'#ffc107'},{id:'NC',label:'NC',rx:44,ry:h+8},{id:'GND',label:'GND',rx:w-12,ry:h+8,color:'#212121'}];
+    case 'mq2':
+      return [{id:'VCC',label:'VCC',rx:14,ry:h+8,color:'#e53935'},{id:'AO',label:'AO',rx:28,ry:h+8,color:'#43a047'},{id:'DO',label:'DO',rx:42,ry:h+8,color:'#ffc107'},{id:'GND',label:'GND',rx:w-14,ry:h+8,color:'#212121'}];
+    case 'joystick':
+      return [{id:'VCC',label:'VCC',rx:10,ry:h+8,color:'#e53935'},{id:'GND',label:'GND',rx:24,ry:h+8,color:'#212121'},{id:'VRX',label:'VRX',rx:38,ry:h+8,color:'#1565c0'},{id:'VRY',label:'VRY',rx:52,ry:h+8,color:'#43a047'},{id:'SW',label:'SW',rx:66,ry:h+8,color:'#ffc107'}];
+    case 'keypad':
+      return [{id:'R1',label:'R1',rx:14,ry:-8},{id:'R2',label:'R2',rx:28,ry:-8},{id:'R3',label:'R3',rx:42,ry:-8},{id:'R4',label:'R4',rx:56,ry:-8},{id:'C1',label:'C1',rx:70,ry:-8},{id:'C2',label:'C2',rx:84,ry:-8}];
+    case 'led_r': case 'led_g': case 'led_b': case 'led_y': case 'led_w':
+      return [{id:'A',label:'A+',rx:16,ry:h+8,color:'#e53935'},{id:'K',label:'K-',rx:28,ry:h+8,color:'#212121'}];
+    case 'led_rgb':
+      return [{id:'R',label:'R',rx:12,ry:h+8,color:'#e53935'},{id:'G',label:'G',rx:24,ry:h+8,color:'#43a047'},{id:'B',label:'B',rx:36,ry:h+8,color:'#2196f3'},{id:'K',label:'GND',rx:48,ry:h+8,color:'#212121'}];
+    case 'buzzer':
+      return [{id:'P',label:'+',rx:20,ry:h+8,color:'#e53935'},{id:'N',label:'-',rx:36,ry:h+8,color:'#212121'}];
+    case 'servo':
+      return [{id:'GND',label:'GND',rx:14,ry:h+8,color:'#212121'},{id:'VCC',label:'VCC',rx:mx,ry:h+8,color:'#e53935'},{id:'SIG',label:'SIG',rx:w-14,ry:h+8,color:'#ffc107'}];
+    case 'dcmotor':
+      return [{id:'P',label:'+',rx:22,ry:h+8,color:'#e53935'},{id:'N',label:'-',rx:38,ry:h+8,color:'#212121'}];
+    case 'lcd': case 'lcd_i2c':
+      return [{id:'GND',label:'GND',rx:12,ry:h+8,color:'#212121'},{id:'VCC',label:'VCC',rx:26,ry:h+8,color:'#e53935'},{id:'SDA',label:'SDA',rx:40,ry:h+8,color:'#43a047'},{id:'SCL',label:'SCL',rx:54,ry:h+8,color:'#2196f3'}];
+    case 'relay':
+      return [{id:'VCC',label:'VCC',rx:14,ry:-8,color:'#e53935'},{id:'IN',label:'IN',rx:mx,ry:-8,color:'#ffc107'},{id:'GND',label:'GND',rx:w-14,ry:-8,color:'#212121'},{id:'COM',label:'COM',rx:14,ry:h+8},{id:'NO',label:'NO',rx:mx,ry:h+8},{id:'NC',label:'NC',rx:w-14,ry:h+8}];
+    case 'seg7':
+      return [{id:'A',label:'A',rx:14,ry:-8},{id:'B',label:'B',rx:28,ry:-8},{id:'C',label:'C',rx:42,ry:-8},{id:'D',label:'D',rx:56,ry:-8},{id:'GND',label:'GND',rx:mx,ry:h+8,color:'#212121'}];
+    case 'neopixel':
+      return [{id:'GND',label:'GND',rx:14,ry:h+8,color:'#212121'},{id:'VCC',label:'VCC',rx:mx,ry:h+8,color:'#e53935'},{id:'DIN',label:'DIN',rx:w-14,ry:h+8,color:'#43a047'}];
+    case 'npn': case 'pnp':
+      return [{id:'B',label:'B',rx:-8,ry:h/2,color:'#ffc107'},{id:'C',label:'C',rx:mx,ry:-8,color:'#e53935'},{id:'E',label:'E',rx:mx,ry:h+8,color:'#212121'}];
+    case 'ic555':
+      return [{id:'VCC',label:'VCC',rx:mx,ry:-8,color:'#e53935'},{id:'GND',label:'GND',rx:mx,ry:h+8,color:'#212121'},{id:'TRG',label:'TRG',rx:-8,ry:h*.33},{id:'THR',label:'THR',rx:-8,ry:h*.66},{id:'OUT',label:'OUT',rx:w+8,ry:h*.5,color:'#43a047'},{id:'RST',label:'RST',rx:w+8,ry:h*.25},{id:'CV',label:'CV',rx:w+8,ry:h*.75}];
+    case 'lm7805':
+      return [{id:'IN',label:'IN',rx:14,ry:h+8,color:'#e53935'},{id:'GND',label:'GND',rx:mx,ry:h+8,color:'#212121'},{id:'OUT',label:'OUT',rx:w-14,ry:h+8,color:'#43a047'}];
+    case 'l298n':
+      return [{id:'ENA',label:'ENA',rx:14,ry:-8},{id:'IN1',label:'IN1',rx:28,ry:-8},{id:'IN2',label:'IN2',rx:42,ry:-8},{id:'IN3',label:'IN3',rx:56,ry:-8},{id:'IN4',label:'IN4',rx:70,ry:-8},{id:'ENB',label:'ENB',rx:84,ry:-8},{id:'VCC',label:'VCC',rx:14,ry:h+8,color:'#e53935'},{id:'GND',label:'GND',rx:mx,ry:h+8,color:'#212121'},{id:'MA+',label:'MA+',rx:w-28,ry:h/2},{id:'MA-',label:'MA-',rx:w+8,ry:h/2}];
+    case 'bat9v': case 'bat15v': case 'coin3v':
+      return [{id:'P',label:'+',rx:mx-12,ry:-8,color:'#e53935'},{id:'N',label:'-',rx:mx+12,ry:-8,color:'#212121'}];
+    case 'microbit':
+      return [{id:'P0',label:'P0',rx:14,ry:h+8},{id:'P1',label:'P1',rx:32,ry:h+8},{id:'P2',label:'P2',rx:50,ry:h+8},{id:'3V',label:'3V',rx:68,ry:h+8,color:'#e53935'},{id:'GND',label:'GND',rx:86,ry:h+8,color:'#212121'}];
+    default:
+      return [{id:'P1',label:'1',rx:mx-12,ry:-8},{id:'P2',label:'2',rx:mx+12,ry:h+8}];
+  }
+}
+
+// Wire color by pin label
+function pinColor(lbl) {
+  const l = lbl.toLowerCase();
+  if(l.includes('vcc')||l.includes('5v')||l.includes('3v')||l.includes('vin')||l==='+') return '#e53935';
+  if(l.includes('gnd')||l==='-'||l==='k-') return '#212121';
+  if(l.includes('sig')||l.includes('out')||l.includes('do')||l==='ao') return '#43a047';
+  if(l.includes('scl')||l.includes('sda')) return '#1565c0';
+  if(l.includes('trig')||l.includes('pwm')||l==='in') return '#ffc107';
+  return '#43a047';
+}
+
+// ══════════════════════════════════════════
+// LOGIN
+// ══════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('ltitle').textContent = '⚡ ' + CFG.labName;
+  document.getElementById('lsub').textContent = `// ${CFG.teacher} · Proctored Examination`;
+  buildPal();
+  document.getElementById('ceditor').value = DEFAULT_CODE;
+  syncLN();
+  document.getElementById('ipass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+
+  // ESC cancels wire mode
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Escape') cancelWire();
+    if(e.key === 'Delete' && selId) deleteComp(selId);
+  });
+});
+
+function showErr(msg) {
+  const el = document.getElementById('lerr');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+function doLogin() {
+  const name  = document.getElementById('iname').value.trim();
+  const roll  = document.getElementById('iid').value.trim();
+  const pass  = document.getElementById('ipass').value.trim();
+  if(!name || !roll || !pass) { showErr('Sabhi fields bharen'); return; }
+
+  // ─── CHECK PERMANENT BLOCK FIRST ───
+  if(isBlocked(roll)) {
+    const info = getBlockInfo(roll);
+    showBlockedScreen(roll, info.name || name, info.vlog || []);
+    return;
+  }
+
+  if(pass !== CFG.examPass) { showErr('❌ Galat password! Teacher se check karein.'); return; }
+
+  // Login success
+  student = { name, roll };
+  sessionId = roll.replace(/[^a-zA-Z0-9]/g,'_') + '_' + Date.now();
+  document.getElementById('dName').textContent = name;
+  document.getElementById('dId').textContent = roll;
+
+  show('sLab');
+
+  // Anti-cheat
+  attachAntiCheat();
+  startLabTimer();
+  logToFB('login', {name, roll, time: new Date().toISOString()});
+
+  // Watch for teacher re-login grant (only if blocked — irrelevant now but kept for blocked screen)
+  if(db) {
+    db.ref('sessions/' + sessionId).set({name, roll, active: true, violations: 0, startTime: new Date().toISOString()});
+  }
+}
+
+function show(id) {
+  ['sLogin','sBlocked','sLab'].forEach(s => {
+    document.getElementById(s).classList.remove('on');
+  });
+  document.getElementById(id).classList.add('on');
+}
+
+// ══════════════════════════════════════════
+// BLOCKED SCREEN
+// ══════════════════════════════════════════
+function showBlockedScreen(roll, name, vl) {
+  document.getElementById('binfo').innerHTML = `
+    <div class="brow">👤 Name: ${name}</div>
+    <div class="brow">🪪 Roll No: ${roll}</div>
+    <div class="brow">🚫 Violations: ${CFG.maxV}/${CFG.maxV}</div>
+    <div class="brow">⏰ Blocked: ${new Date().toLocaleString()}</div>`;
+  const vlogEl = document.getElementById('bvlog');
+  vlogEl.innerHTML = vl.length ? vl.map(v=>`<div class="vlogitem">• ${v}</div>`).join('') : '<div class="vlogitem">No detailed log</div>';
+  show('sBlocked');
+
+  // Watch Firebase for teacher re-login grant
+  if(db) {
+    const key = roll.replace(/[^a-zA-Z0-9]/g,'_');
+    db.ref('relogin/' + key).on('value', snap => {
+      if(snap.val() === true) {
+        removeBlock(roll);
+        db.ref('relogin/' + key).remove();
+        document.getElementById('reloginNote').style.display = 'block';
+        setTimeout(() => location.reload(), 2000);
+      }
+    });
+  }
+}
+
+function permBlock() {
+  // Add to localStorage permanently
+  setBlocked(student.roll, student.name, vlog);
+  // Firebase
+  logToFB('blocked', {roll: student.roll, violations: vlog});
+  if(db) db.ref('blocked/' + sessionId).set({name: student.name, roll: student.roll, vlog, time: new Date().toISOString()});
+  showBlockedScreen(student.roll, student.name, vlog);
+}
+
+// ══════════════════════════════════════════
+// ANTI-CHEAT — violations add to vlog
+// If tab switch → violation, 3rd time → perm block
+// Student cannot login again even with correct password
+// ══════════════════════════════════════════
+let _antiAttached = false;
+function attachAntiCheat() {
+  if(_antiAttached) return;
+  _antiAttached = true;
+
+  document.addEventListener('visibilitychange', () => {
+    if(document.hidden && !submitted) violation('⚠ Tab switched / window minimized');
+  });
+  window.addEventListener('blur', () => {
+    if(!submitted) violation('⚠ Window focus lost');
+  });
+  document.addEventListener('contextmenu', e => { e.preventDefault(); violation('⚠ Right-click kiya'); });
+  document.addEventListener('keydown', e => {
+    if((e.key==='F12')||(e.ctrlKey&&e.shiftKey&&['I','J','C'].includes(e.key))||(e.ctrlKey&&e.key==='U')) {
+      e.preventDefault(); violation('⚠ DevTools/Inspect open karne ki koshish');
+    }
+  });
+  document.addEventListener('fullscreenchange', () => {
+    if(!document.fullscreenElement && !submitted) violation('⚠ Fullscreen exit kiya');
+  });
+}
+
+let vCooldown = false;
+function violation(msg) {
+  if(submitted || vCooldown) return;
+  vCooldown = true;
+  setTimeout(() => vCooldown = false, 3000);
+
+  violations++;
+  const logMsg = `[V${violations}] ${new Date().toLocaleTimeString()} — ${msg}`;
+  vlog.push(logMsg);
+  logToFB('violation', {v: violations, msg, time: new Date().toISOString()});
+  document.getElementById('vcbadge').textContent = `V: ${violations}/${CFG.maxV}`;
+
+  if(violations >= CFG.maxV) {
+    permBlock();
+    return;
+  }
+
+  // Show banner
+  const banner = document.getElementById('vBanner');
+  document.getElementById('vbmsg').textContent = `⚠ Violation ${violations}/${CFG.maxV}: ${msg}`;
+  banner.classList.add('show');
+  // Restart bar animation
+  const bar = document.getElementById('vbar');
+  bar.style.animation = 'none';
+  bar.offsetHeight;
+  bar.style.animation = 'vbar 5s linear forwards';
+  setTimeout(() => banner.classList.remove('show'), 5500);
+}
+
+function hideVB() { document.getElementById('vBanner').classList.remove('show'); }
+
+// ══════════════════════════════════════════
+// TIMERS
+// ══════════════════════════════════════════
+function startLabTimer() {
+  labInt = setInterval(() => {
+    labSec++;
+    const m = String(Math.floor(labSec/60)).padStart(2,'0');
+    const s = String(labSec%60).padStart(2,'0');
+    document.getElementById('clock').textContent = `${m}:${s}`;
+  }, 1000);
+}
+
+// ══════════════════════════════════════════
+// FIREBASE LOGGING
+// ══════════════════════════════════════════
+function logToFB(type, data) {
+  if(!db || !sessionId) return;
+  try { db.ref('sessions/' + sessionId + '/' + type).push(data); } catch(e) {}
+}
+
+// ══════════════════════════════════════════
+// PALETTE
+// ══════════════════════════════════════════
+function buildPal() {
+  const cats = document.getElementById('palCats');
+  cats.innerHTML = CATS.map(c => `<button class="catbtn${c==='All'?' on':''}" onclick="setCat('${c}',this)">${c}</button>`).join('');
+  renderPal();
+}
+function setCat(c, el) {
+  palCat = c;
+  document.querySelectorAll('.catbtn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on'); renderPal();
+}
+function filterPal(q) { palQ = q.toLowerCase(); renderPal(); }
+function renderPal() {
+  const items = PALETTE.filter(c => {
+    const cok = palCat==='All' || c.cat===palCat;
+    const qok = !palQ || c.n.toLowerCase().includes(palQ) || c.t.toLowerCase().includes(palQ) || c.d.toLowerCase().includes(palQ);
+    return cok && qok;
+  });
+  const list = document.getElementById('palList');
+  if(palCat==='All') {
+    const groups = {};
+    items.forEach(c => { if(!groups[c.cat]) groups[c.cat]=[]; groups[c.cat].push(c); });
+    list.innerHTML = Object.entries(groups).map(([cat,cs]) =>
+      `<div class="palsep">${cat}</div>` + cs.map(piHTML).join('')
+    ).join('');
+  } else {
+    list.innerHTML = items.map(piHTML).join('') || '<div style="padding:16px;text-align:center;color:var(--muted);font-size:11px">No results</div>';
+  }
+}
+function piHTML(c) {
+  return `<div class="palitem" draggable="true" ondragstart="palDS(event,'${c.t}')" ondblclick="quickAdd('${c.t}')" title="${c.n}: ${c.d}">
+    <span class="piic">${c.ic}</span><div><div class="piname">${c.n}</div><div class="pidesc">${c.d}</div></div></div>`;
+}
+
+// ══════════════════════════════════════════
+// DRAG & DROP
+// ══════════════════════════════════════════
+function palDS(e, type) { dragType = type; e.dataTransfer.setData('t', type); }
+function onDrop(e) {
+  e.preventDefault();
+  const type = e.dataTransfer.getData('t') || dragType; if(!type) return;
+  const cw = document.getElementById('cwrap');
+  const r = cw.getBoundingClientRect();
+  addComp(type, e.clientX - r.left + cw.scrollLeft - 30, e.clientY - r.top + cw.scrollTop - 30);
+}
+function quickAdd(type) {
+  const cw = document.getElementById('cwrap');
+  addComp(type, cw.scrollLeft + cw.clientWidth/2 - 30, cw.scrollTop + cw.clientHeight/2 - 30);
+}
+
+// ══════════════════════════════════════════
+// COMPONENTS
+// ══════════════════════════════════════════
+function addComp(type, x, y) {
+  const def = PALETTE.find(c=>c.t===type); if(!def) return;
+  const id = 'c' + (nextId++);
+  const comp = { id, type, x: Math.max(10,Math.round(x)), y: Math.max(10,Math.round(y)), def, pin:'', val:512 };
+  comps.push(comp);
+  renderComp(comp);
+  selectComp(id);
+  document.getElementById('chint').style.opacity = '0';
+  saveToFB();
+}
+
+function renderComp(comp) {
+  const el = document.createElement('div');
+  el.className = 'ccomp'; el.id = 'el_'+comp.id;
+  el.style.cssText = `left:${comp.x}px;top:${comp.y}px;width:${comp.def.w}px;height:${comp.def.h}px`;
+  el.innerHTML = buildHTML(comp) + buildPinDots(comp);
+  el.addEventListener('mousedown', e => {
+    if(e.target.classList.contains('pindot')||e.target.classList.contains('sc-del')) return;
+    if(e.button===0) { e.stopPropagation(); startDrag(e, comp.id); }
+  });
+  el.addEventListener('click', e => {
+    if(!e.target.classList.contains('pindot')) { e.stopPropagation(); selectComp(comp.id); }
+  });
+  document.getElementById('cinner').appendChild(el);
+  comp.el = el;
+
+  // Pin dot click → wire
+  el.querySelectorAll('.pindot').forEach(dot => {
+    dot.addEventListener('click', e => {
+      e.stopPropagation(); e.preventDefault();
+      onPinClick(comp.id, dot.dataset.pin, dot.dataset.label, e);
+    });
+  });
+  updateSimVis(comp.id);
+}
+
+function buildPinDots(comp) {
+  const pins = getPins(comp.type, comp.def.w, comp.def.h);
+  return pins.map(p => {
+    const col = p.color || '#ffc107';
+    return `<div class="pindot" data-pin="${p.id}" data-label="${p.label}" style="left:${p.rx}px;top:${p.ry}px;background:${col};border-color:${col};filter:brightness(1.2)"><div class="ptip">${p.label}</div></div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// WIRE SYSTEM — Complete working implementation
+// ═══════════════════════════════════════════════════════════
+
+let previewEl = null; // SVG preview line element
+let mousePt = {x:0,y:0}; // current mouse on canvas
+
+function toggleWireMode() {
+  wireMode = !wireMode;
+  const btn = document.getElementById('wireToggleBtn');
+  const wrap = document.getElementById('cwrap');
+  const hint = document.getElementById('wireHint');
+  const inner = document.getElementById('cinner');
+  if(wireMode) {
+    btn.classList.add('wire-on');
+    btn.textContent = '🔗 Wire Mode: ON';
+    wrap.classList.add('wmcursor');
+    inner.classList.add('wm-active');
+    hint.classList.add('on');
+    hint.textContent = '🔗 Pin pe click karein · Pehle source pin · Phir destination pin · ESC = cancel';
+  } else {
+    cancelWire();
+  }
+}
+
+function cancelWire() {
+  wireFrom = null;
+  wireMode = false;
+  const btn = document.getElementById('wireToggleBtn');
+  const wrap = document.getElementById('cwrap');
+  const hint = document.getElementById('wireHint');
+  const inner = document.getElementById('cinner');
+  btn.classList.remove('wire-on');
+  btn.textContent = '🔗 Wire Mode: OFF';
+  wrap.classList.remove('wmcursor');
+  inner.classList.remove('wm-active');
+  hint.classList.remove('on');
+  // Remove preview
+  if(previewEl) { previewEl.remove(); previewEl = null; }
+  // Remove from-highlight
+  document.querySelectorAll('.pindot.pfrom').forEach(d => d.classList.remove('pfrom'));
+}
+
+function getPinAbsPos(compId, pinId) {
+  // Returns {x,y} absolute position on canvas
+  const comp = comps.find(c=>c.id===compId); if(!comp) return null;
+  const pins = getPins(comp.type, comp.def.w, comp.def.h);
+  const pin = pins.find(p=>p.id===pinId); if(!pin) return null;
+  return { x: comp.x + pin.rx, y: comp.y + pin.ry };
+}
+
+function onPinClick(compId, pinId, pinLabel, e) {
+  if(!wireMode) {
+    // Auto-enter wire mode on pin click
+    wireMode = true;
+    const btn = document.getElementById('wireToggleBtn');
+    const wrap = document.getElementById('cwrap');
+    const inner = document.getElementById('cinner');
+    btn.classList.add('wire-on');
+    btn.textContent = '🔗 Wire Mode: ON';
+    wrap.classList.add('wmcursor');
+    inner.classList.add('wm-active');
+    document.getElementById('wireHint').classList.add('on');
+  }
+
+  const pos = getPinAbsPos(compId, pinId);
+  if(!pos) return;
+
+  if(!wireFrom) {
+    // First pin selected
+    wireFrom = { compId, pinId, label: pinLabel, x: pos.x, y: pos.y };
+    // Highlight dot
+    document.querySelectorAll('.pindot.pfrom').forEach(d=>d.classList.remove('pfrom'));
+    const dot = document.querySelector(`#el_${compId} .pindot[data-pin="${pinId}"]`);
+    if(dot) dot.classList.add('pfrom');
+    document.getElementById('wireHint').textContent = `🔗 "${pinLabel}" se wire shuru — Ab destination pin pe click karein · ESC = cancel`;
+  } else {
+    // Second pin — complete wire
+    if(wireFrom.compId === compId && wireFrom.pinId === pinId) {
+      // Same pin — cancel
+      cancelWire(); return;
+    }
+    const toPos = pos;
+    const color = pinColor(wireFrom.label);
+    const wire = {
+      id: 'w'+(nextWireId++),
+      from: { compId: wireFrom.compId, pinId: wireFrom.pinId, label: wireFrom.label },
+      to:   { compId, pinId, label: pinLabel },
+      color
+    };
+    wires.push(wire);
+    drawWire(wire);
+    updateWirePanel();
+    document.getElementById('wireHint').textContent = `✅ Wire connected! Agle wire ke liye pin pe click karein · ESC = exit`;
+    wireFrom = null;
+    document.querySelectorAll('.pindot.pfrom').forEach(d=>d.classList.remove('pfrom'));
+    if(previewEl) { previewEl.remove(); previewEl = null; }
+    // Auto-remove message
+    setTimeout(() => {
+      if(wireMode) document.getElementById('wireHint').textContent = '🔗 Pin pe click karein · ESC = cancel';
+    }, 2000);
+  }
+}
+
+function getWireEndpoints(wire) {
+  const fp = getPinAbsPos(wire.from.compId, wire.from.pinId);
+  const tp = getPinAbsPos(wire.to.compId, wire.to.pinId);
+  return { fp, tp };
+}
+
+function bezierPath(x1,y1,x2,y2) {
+  const dx = Math.abs(x2-x1)*0.55;
+  const dy = Math.abs(y2-y1)*0.55;
+  const cx = dx > 40 ? dx : 60;
+  const cy = dy > 40 ? dy : 60;
+  // Determine curve direction
+  const mx = (x1+x2)/2, my = (y1+y2)/2;
+  return `M${x1},${y1} C${x1},${y1+cy} ${x2},${y2-cy} ${x2},${y2}`;
+}
+
+function drawWire(wire) {
+  const layer = document.getElementById('wLayer');
+  const {fp, tp} = getWireEndpoints(wire);
+  if(!fp || !tp) return;
+
+  // Remove existing SVG element if redraw
+  const existing = document.getElementById('svg_'+wire.id);
+  if(existing) existing.remove();
+
+  const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+  path.id = 'svg_'+wire.id;
+  path.setAttribute('class','wire-line');
+  path.setAttribute('d', bezierPath(fp.x,fp.y,tp.x,tp.y));
+  path.setAttribute('stroke', wire.color);
+  path.setAttribute('stroke-width', '3');
+  path.setAttribute('stroke-linecap','round');
+  path.title = `${wire.from.label} → ${wire.to.label}`;
+  path.addEventListener('click', e => {
+    e.stopPropagation();
+    if(confirm(`Wire delete karein?\n${wire.from.label} → ${wire.to.label}`)) deleteWire(wire.id);
+  });
+  // Wire hover glow
+  path.addEventListener('mouseenter', () => path.setAttribute('stroke-width','5'));
+  path.addEventListener('mouseleave', () => path.setAttribute('stroke-width','3'));
+  layer.appendChild(path);
+
+  // Draw endpoint dots
+  ['fp','tp'].forEach(ep => {
+    const pt = ep==='fp' ? fp : tp;
+    const old = document.getElementById('svgd_'+wire.id+'_'+ep);
+    if(old) old.remove();
+    const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.id = 'svgd_'+wire.id+'_'+ep;
+    circle.setAttribute('cx', pt.x); circle.setAttribute('cy', pt.y);
+    circle.setAttribute('r','4'); circle.setAttribute('fill', wire.color);
+    circle.setAttribute('pointer-events','none');
+    layer.appendChild(circle);
+  });
+}
+
+function redrawAllWires() {
+  wires.forEach(w => drawWire(w));
+}
+
+function deleteWire(id) {
+  wires = wires.filter(w => w.id !== id);
+  ['','_fp','_tp'].forEach(suf => {
+    const el = document.getElementById('svg_'+id) || document.getElementById('svgd_'+id+suf);
+    if(el) el.remove();
+  });
+  document.getElementById('svg_'+id)?.remove();
+  document.getElementById('svgd_'+id+'_fp')?.remove();
+  document.getElementById('svgd_'+id+'_tp')?.remove();
+  updateWirePanel();
+}
+
+function clearAllWires() {
+  if(wires.length > 0 && !confirm('Saare wires delete karein?')) return;
+  wires.forEach(w => {
+    document.getElementById('svg_'+w.id)?.remove();
+    document.getElementById('svgd_'+w.id+'_fp')?.remove();
+    document.getElementById('svgd_'+w.id+'_tp')?.remove();
+  });
+  wires = [];
+  updateWirePanel();
+}
+
+function updateWirePanel() {
+  const cnt = wires.length;
+  document.getElementById('wCount').textContent = cnt;
+  document.getElementById('wCountTop').textContent = cnt;
+  const list = document.getElementById('wpList');
+  if(!cnt) { list.innerHTML='<div class="wpempty">Koi wire nahi<br/>Pin pe click karein</div>'; return; }
+  list.innerHTML = wires.map(w => `
+    <div class="wpitem">
+      <div class="wpdot" style="background:${w.color}"></div>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis">${w.from.label} → ${w.to.label}</span>
+      <button class="wpdel" onclick="deleteWire('${w.id}')" title="Delete wire">✕</button>
+    </div>`).join('');
+}
+
+function toggleWPanel() {
+  document.getElementById('wPanel').classList.toggle('on');
+}
+
+// Mouse move → preview wire
+function onCanvasMouseMove(e) {
+  if(!wireMode || !wireFrom) return;
+  const cw = document.getElementById('cwrap');
+  const r = cw.getBoundingClientRect();
+  mousePt = { x: e.clientX - r.left + cw.scrollLeft, y: e.clientY - r.top + cw.scrollTop };
+
+  const layer = document.getElementById('wLayer');
+  if(!previewEl) {
+    previewEl = document.createElementNS('http://www.w3.org/2000/svg','path');
+    previewEl.setAttribute('class','wire-preview');
+    previewEl.setAttribute('stroke', wireFrom ? pinColor(wireFrom.label) : '#888');
+    previewEl.setAttribute('stroke-width','2.5');
+    layer.appendChild(previewEl);
+  }
+  previewEl.setAttribute('d', bezierPath(wireFrom.x, wireFrom.y, mousePt.x, mousePt.y));
+}
+
+// Canvas click — cancel wire if clicking empty area
+function onCanvasClick(e) {
+  if(e.target.classList.contains('pindot')) return;
+  if(wireFrom) {
+    // Clicked empty area — cancel wire from
+    wireFrom = null;
+    document.querySelectorAll('.pindot.pfrom').forEach(d=>d.classList.remove('pfrom'));
+    if(previewEl) { previewEl.remove(); previewEl=null; }
+    document.getElementById('wireHint').textContent = '🔗 Pin pe click karein · ESC = cancel';
+    return;
+  }
+  selectComp(null);
+}
+
+// ══════════════════════════════════════════
+// DRAG COMPONENTS
+// ══════════════════════════════════════════
+let _dragging = null, _dox = 0, _doy = 0;
+
+function startDrag(e, id) {
+  selectComp(id);
+  const comp = comps.find(c=>c.id===id); if(!comp) return;
+  const cw = document.getElementById('cwrap');
+  const r = cw.getBoundingClientRect();
+  _dragging = id;
+  _dox = e.clientX - r.left + cw.scrollLeft - comp.x;
+  _doy = e.clientY - r.top + cw.scrollTop - comp.y;
+
+  const onMove = ev => {
+    if(!_dragging) return;
+    const cr = cw.getBoundingClientRect();
+    const nx = Math.max(0, ev.clientX - cr.left + cw.scrollLeft - _dox);
+    const ny = Math.max(0, ev.clientY - cr.top + cw.scrollTop - _doy);
+    comp.x = Math.round(nx); comp.y = Math.round(ny);
+    comp.el.style.left = comp.x + 'px';
+    comp.el.style.top = comp.y + 'px';
+    redrawAllWires(); // ← Wires update when component moves!
+  };
+  const onUp = () => {
+    _dragging = null;
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    saveToFB();
+  };
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
+// ══════════════════════════════════════════
+// SELECTION
+// ══════════════════════════════════════════
+function selectComp(id) {
+  if(wireMode) return;
+  selId = id;
+  document.querySelectorAll('.ccomp').forEach(el => {
+    el.classList.remove('sel');
+    el.querySelector('.selbar')?.remove();
+  });
+  if(!id) return;
+  const comp = comps.find(c=>c.id===id); if(!comp) return;
+  comp.el.classList.add('sel');
+  // Selection bar
+  const bar = document.createElement('div');
+  bar.className = 'selbar';
+  bar.innerHTML = `<span style="font-size:10px">${comp.def.ic} ${comp.def.n}</span><span style="font-size:9px">Pin:</span><input value="${comp.pin||''}" style="width:34px;border:1.5px solid var(--border);border-radius:4px;font-size:10px;padding:1px 3px;font-family:'JetBrains Mono',monospace" onchange="comp_setpin('${id}',this.value)" placeholder="e.g.13"/><button class="sc-del" onclick="deleteComp('${id}')">🗑 Delete</button>`;
+  comp.el.appendChild(bar);
+}
+
+window.comp_setpin = (id, pin) => {
+  const c = comps.find(c=>c.id===id); if(c) { c.pin=pin; updateSimVis(id); }
+};
+
+function deleteComp(id) {
+  const comp = comps.find(c=>c.id===id); if(!comp) return;
+  comp.el.remove();
+  comps = comps.filter(c=>c.id!==id);
+  // Remove attached wires
+  const del = wires.filter(w=>w.from.compId===id||w.to.compId===id);
+  del.forEach(w=>deleteWire(w.id));
+  if(selId===id) selId=null;
+  if(!comps.length) document.getElementById('chint').style.opacity='.25';
+  saveToFB();
+}
+
+// ══════════════════════════════════════════
+// COMPONENT HTML — Tinkercad-like visuals
+// ══════════════════════════════════════════
+function buildHTML(comp) {
+  const s = simState[comp.id] || {};
+  const on = !!s.on, R = running;
+  const w = comp.def.w, h = comp.def.h;
+
+  switch(comp.type) {
+
+    // ═══════════════════════════════════════
+    // ARDUINO UNO R3 — Full Tinkercad Layout
+    // ═══════════════════════════════════════
+    case 'arduino': {
+      // Top pins: AREF GND 13 12 ~11 ~10 ~9 | 8 7 ~6 ~5 4 ~3 2 TX RX
+      const dPins = ['AREF','GND','13','12','~11','~10','~9','8','7','~6','~5','4','~3','2','TX','RX'];
+      // Power pins bottom-left
+      const pPins = ['IOREF','RST','3V3','5V','GND','GND','VIN'];
+      // Analog pins bottom-right
+      const aPins = ['A0','A1','A2','A3','A4','A5'];
+
+      const pinColor2 = p => {
+        if(p==='GND') return '#222';
+        if(p==='5V'||p==='VIN'||p==='3V3') return '#c62828';
+        if(p==='AREF'||p==='IOREF'||p==='RST') return '#7b1fa2';
+        if(/^A\d/.test(p)) return '#1565c0';
+        return '#2e7d32';
+      };
+
+      return `<div style="position:relative;width:${w}px;height:${h}px">
+        <!-- Board body -->
+        <div style="position:absolute;left:16px;top:0;right:0;bottom:0;background:#006e6e;border-radius:0 6px 6px 0;border:2px solid #004e52;box-shadow:0 4px 14px rgba(0,0,0,.35)">
+
+          <!-- USB-B Port (left side) -->
+          <div style="position:absolute;left:-16px;top:14px;width:16px;height:26px;background:#777;border-radius:3px 0 0 3px;border:1.5px solid #555;border-right:none">
+            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:8px;height:18px;background:#333;border-radius:2px"></div>
+          </div>
+
+          <!-- DC Barrel Jack (left side bottom) -->
+          <div style="position:absolute;left:-14px;bottom:26px;width:14px;height:18px;background:#444;border-radius:50% 0 0 50%;border:2px solid #222">
+            <div style="position:absolute;top:50%;left:3px;width:6px;height:6px;border-radius:50%;background:#111;transform:translateY(-50%)"></div>
+          </div>
+
+          <!-- Reset Button (red) -->
+          <div style="position:absolute;right:10px;top:10px;width:11px;height:11px;border-radius:50%;background:#e53935;border:1.5px solid #c62828;box-shadow:0 1px 3px rgba(0,0,0,.4)"></div>
+
+          <!-- ATmega328P Chip (center) -->
+          <div style="position:absolute;top:52px;left:88px;width:72px;height:66px;background:#1a1a1a;border-radius:3px;border:1px solid #444;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;box-shadow:0 2px 6px rgba(0,0,0,.5)">
+            <!-- IC legs left -->
+            ${[1,2,3,4,5,6,7].map((i,idx)=>`<div style="position:absolute;left:-6px;top:${8+idx*8}px;width:6px;height:2px;background:#888"></div>`).join('')}
+            <!-- IC legs right -->
+            ${[1,2,3,4,5,6,7].map((i,idx)=>`<div style="position:absolute;right:-6px;top:${8+idx*8}px;width:6px;height:2px;background:#888"></div>`).join('')}
+            <div style="font-size:6px;color:#555;font-family:'JetBrains Mono',monospace;letter-spacing:.5px">ATMEL</div>
+            <div style="font-size:7.5px;color:#777;font-family:'JetBrains Mono',monospace;font-weight:700">ATmega</div>
+            <div style="font-size:7.5px;color:#666;font-family:'JetBrains Mono',monospace;font-weight:700">328P</div>
+            <div style="font-size:5px;color:#444;font-family:'JetBrains Mono',monospace">PU</div>
+            <!-- Notch -->
+            <div style="position:absolute;top:3px;left:50%;transform:translateX(-50%);width:10px;height:4px;border-radius:50%;background:#000;border:1px solid #333"></div>
+          </div>
+
+          <!-- Crystal oscillator -->
+          <div style="position:absolute;top:72px;left:168px;width:20px;height:10px;background:#c8a96e;border-radius:4px;border:1.5px solid #8b6914"></div>
+
+          <!-- Arduino logo + text -->
+          <div style="position:absolute;top:8px;left:14px;font-size:11px;color:#00e5ff;font-style:italic;font-weight:700;letter-spacing:.5px">Arduino</div>
+          <div style="position:absolute;top:22px;left:14px;font-size:8px;color:#80deea;font-family:'JetBrains Mono',monospace;font-weight:600">UNO R3</div>
+
+          <!-- L (ICSP header) -->
+          <div style="position:absolute;top:42px;right:16px;display:grid;grid-template-columns:1fr 1fr;gap:2px;width:16px">
+            ${[1,2,3,4,5,6].map(()=>`<div style="width:6px;height:6px;background:#333;border:1px solid #555;border-radius:1px"></div>`).join('')}
+          </div>
+          <div style="position:absolute;top:36px;right:14px;font-size:5px;color:#80deea;font-family:'JetBrains Mono',monospace">ICSP</div>
+
+          <!-- LEDs row -->
+          <div style="position:absolute;bottom:14px;left:16px;display:flex;gap:4px;align-items:center">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+              <div style="width:5px;height:5px;border-radius:50%;background:${R?'#4caf50':'#1b5e20'};box-shadow:${R?'0 0 6px #4caf50':''}"></div>
+              <div style="font-size:5px;color:#80deea;font-family:'JetBrains Mono',monospace">ON</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+              <div style="width:5px;height:5px;border-radius:50%;background:#ffc107;opacity:.35"></div>
+              <div style="font-size:5px;color:#80deea;font-family:'JetBrains Mono',monospace">TX</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+              <div style="width:5px;height:5px;border-radius:50%;background:#ffc107;opacity:.35"></div>
+              <div style="font-size:5px;color:#80deea;font-family:'JetBrains Mono',monospace">RX</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+              <div style="width:5px;height:5px;border-radius:50%;background:${R?'#ff9800':'#e65100'};opacity:${R?.9:.3}"></div>
+              <div style="font-size:5px;color:#80deea;font-family:'JetBrains Mono',monospace">L</div>
+            </div>
+          </div>
+
+          <!-- ═══ TOP DIGITAL PIN HEADERS ═══ -->
+          <!-- Pin holes (black squares) -->
+          <div style="position:absolute;top:-2px;left:12px;display:flex;align-items:flex-end">
+            ${dPins.map((p,i) => `<div style="display:flex;flex-direction:column;align-items:center;${i===7?'margin-left:6px':''}">
+              <div style="width:7px;height:7px;background:#222;border:1px solid #444;border-radius:1px;margin-bottom:1px"></div>
+              <div style="width:4px;height:9px;background:${pinColor2(p)};border-radius:0 0 2px 2px;border:1px solid rgba(0,0,0,.3)"></div>
+            </div>`).join('')}
+          </div>
+          <!-- Pin labels (rotated) -->
+          <div style="position:absolute;top:4px;left:12px;display:flex;pointer-events:none">
+            ${dPins.map((p,i) => `<div style="width:${i===7?19:14}px;display:flex;justify-content:center;align-items:flex-start;overflow:visible">
+              <span style="font-size:5.5px;color:#b2ebf2;font-family:'JetBrains Mono',monospace;display:inline-block;transform:rotate(-70deg) translateY(-1px);transform-origin:50% 100%;white-space:nowrap">${p}</span>
+            </div>`).join('')}
+          </div>
+
+          <!-- ═══ BOTTOM POWER PIN HEADERS ═══ -->
+          <div style="position:absolute;bottom:-2px;left:12px;display:flex;align-items:flex-start">
+            ${pPins.map((p,i) => `<div style="display:flex;flex-direction:column;align-items:center">
+              <div style="width:4px;height:9px;background:${pinColor2(p)};border-radius:2px 2px 0 0;border:1px solid rgba(0,0,0,.3)"></div>
+              <div style="width:7px;height:7px;background:#222;border:1px solid #444;border-radius:1px;margin-top:1px"></div>
+            </div>`).join('')}
+          </div>
+          <!-- Power pin labels -->
+          <div style="position:absolute;bottom:4px;left:12px;display:flex;pointer-events:none">
+            ${pPins.map(p => `<div style="width:14px;display:flex;justify-content:center">
+              <span style="font-size:5.5px;color:${pinColor2(p)==='#c62828'?'#ef9a9a':pinColor2(p)==='#222'?'#bbb':'#b2ebf2'};font-family:'JetBrains Mono',monospace;display:inline-block;transform:rotate(70deg) translateY(1px);transform-origin:50% 0%;white-space:nowrap">${p}</span>
+            </div>`).join('')}
+          </div>
+
+          <!-- ═══ BOTTOM ANALOG PIN HEADERS ═══ -->
+          <div style="position:absolute;bottom:-2px;left:208px;display:flex;align-items:flex-start">
+            ${aPins.map(p => `<div style="display:flex;flex-direction:column;align-items:center">
+              <div style="width:4px;height:9px;background:#1565c0;border-radius:2px 2px 0 0;border:1px solid rgba(0,0,0,.3)"></div>
+              <div style="width:7px;height:7px;background:#222;border:1px solid #444;border-radius:1px;margin-top:1px"></div>
+            </div>`).join('')}
+          </div>
+          <!-- Analog pin labels -->
+          <div style="position:absolute;bottom:4px;left:208px;display:flex;pointer-events:none">
+            ${aPins.map(p => `<div style="width:14px;display:flex;justify-content:center">
+              <span style="font-size:5.5px;color:#90caf9;font-family:'JetBrains Mono',monospace;display:inline-block;transform:rotate(70deg) translateY(1px);transform-origin:50% 0%;white-space:nowrap">${p}</span>
+            </div>`).join('')}
+          </div>
+        </div>
+      </div>`;
+    }
+
+    // ═══════════════════════════════════════
+    // BREADBOARD
+    // ═══════════════════════════════════════
+    case 'breadboard': {
+      const cols = 60, rows = 5;
+      const holeRow = (color) => Array.from({length:cols}).map(()=>
+        `<div style="width:4px;height:4px;border-radius:50%;background:${color};margin:1px"></div>`
+      ).join('');
+      return `<div style="width:${w}px;height:${h}px;background:#d4c47a;border-radius:6px;border:2.5px solid #b8a855;padding:4px;position:relative;box-shadow:0 4px 12px rgba(0,0,0,.25)">
+        <!-- Top power rail + -->
+        <div style="height:10px;background:#b71c1c;border-radius:3px;margin-bottom:2px;display:flex;align-items:center;padding:0 4px;gap:3px">
+          ${Array.from({length:50}).map(()=>`<div style="width:4px;height:4px;border-radius:50%;background:#7b0000"></div>`).join('')}
+        </div>
+        <!-- Top power rail - -->
+        <div style="height:10px;background:#0d47a1;border-radius:3px;margin-bottom:3px;display:flex;align-items:center;padding:0 4px;gap:3px">
+          ${Array.from({length:50}).map(()=>`<div style="width:4px;height:4px;border-radius:50%;background:#003c8f"></div>`).join('')}
+        </div>
+        <!-- Main hole grid -->
+        <div style="background:#b8a050;border-radius:3px;padding:3px;display:grid;grid-template-columns:repeat(${cols},1fr);gap:1px;flex:1">
+          ${Array.from({length:cols*10}).map((_,i)=>{
+            const row = Math.floor(i/cols);
+            const isGap = row===4||row===5;
+            return `<div style="width:4px;height:4px;border-radius:50%;background:${isGap?'transparent':'#7a6230'};margin:1px"></div>`;
+          }).join('')}
+        </div>
+        <!-- Bottom power rail - -->
+        <div style="height:10px;background:#0d47a1;border-radius:3px;margin-top:3px;margin-bottom:2px;display:flex;align-items:center;padding:0 4px;gap:3px">
+          ${Array.from({length:50}).map(()=>`<div style="width:4px;height:4px;border-radius:50%;background:#003c8f"></div>`).join('')}
+        </div>
+        <!-- Bottom power rail + -->
+        <div style="height:10px;background:#b71c1c;border-radius:3px;display:flex;align-items:center;padding:0 4px;gap:3px">
+          ${Array.from({length:50}).map(()=>`<div style="width:4px;height:4px;border-radius:50%;background:#7b0000"></div>`).join('')}
+        </div>
+        <!-- Labels -->
+        <div style="position:absolute;left:2px;top:7px;font-size:7px;color:#ffcdd2;font-weight:700">+</div>
+        <div style="position:absolute;left:2px;top:19px;font-size:7px;color:#bbdefb;font-weight:700">−</div>
+        <div style="position:absolute;left:2px;bottom:19px;font-size:7px;color:#bbdefb;font-weight:700">−</div>
+        <div style="position:absolute;left:2px;bottom:7px;font-size:7px;color:#ffcdd2;font-weight:700">+</div>
+      </div>`;
+    }
+
+    // ═══ RESISTOR ═══
+    case 'resistor':
+      return `<div style="display:flex;align-items:center;width:${w}px;height:${h}px">
+        <div style="flex:1;height:2.5px;background:#999;border-radius:2px"></div>
+        <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center">
+          <div style="width:58px;height:20px;border-radius:10px;background:linear-gradient(90deg,#d4a96e 0%,#d4a96e 12%,#aa7700 12%,#aa7700 25%,#b71c1c 25%,#b71c1c 40%,#d4a96e 40%,#d4a96e 55%,#ffd700 55%,#ffd700 68%,#d4a96e 68%);border:2px solid #8b6914;box-shadow:0 2px 4px rgba(0,0,0,.2)"></div>
+          <div style="font-size:7px;color:#666;font-family:'JetBrains Mono',monospace;margin-top:2px">${comp.pin?`Pin ${comp.pin} · `:''}<span style="color:#333">220Ω</span></div>
+        </div>
+        <div style="flex:1;height:2.5px;background:#999;border-radius:2px"></div>
+      </div>`;
+
+    // ═══ CAPACITOR ═══
+    case 'cap': case 'pcap': {
+      const isPolar = comp.type==='pcap';
+      return `<div style="display:flex;flex-direction:column;align-items:center;height:${h}px;justify-content:space-between;padding:4px 0">
+        <div style="width:2px;height:16px;background:#666"></div>
+        <div style="width:34px;height:34px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#6688bb,#223366);border:3px solid #3355aa;display:flex;align-items:center;justify-content:center;font-size:9px;color:#aaccff;font-family:'JetBrains Mono',monospace;box-shadow:0 2px 6px rgba(0,0,0,.3)">
+          ${isPolar ? '<span style="color:#ef9a9a;font-size:10px">+</span>' : 'C'}
+        </div>
+        <div style="width:2px;height:16px;background:#666"></div>
+        <div style="font-size:7px;color:#556;font-family:'JetBrains Mono',monospace">100µF</div>
+      </div>`;
+    }
+
+    // ═══ DIODE ═══
+    case 'diode': case 'zener':
+      return `<div style="display:flex;align-items:center;width:${w}px;height:${h}px">
+        <div style="flex:1;height:2px;background:#999"></div>
+        <div style="position:relative;display:flex;align-items:center">
+          <div style="width:0;height:0;border-top:12px solid transparent;border-bottom:12px solid transparent;border-left:20px solid #333"></div>
+          <div style="width:3px;height:26px;background:#333;border-radius:1px;position:relative">
+            ${comp.type==='zener'?'<div style="position:absolute;top:-4px;left:-5px;width:13px;height:3px;background:#333;transform:rotate(-30deg)"></div>':''}
+          </div>
+        </div>
+        <div style="flex:1;height:2px;background:#999"></div>
+      </div>`;
+
+    // ═══ BUTTON ═══
+    case 'button': {
+      const pressed = R && on;
+      return `<div style="display:flex;flex-direction:column;align-items:center;height:${h}px;justify-content:center;gap:2px">
+        <div style="width:40px;height:40px;background:#2d3748;border-radius:6px;border:2.5px solid #1a202c;position:relative;box-shadow:0 4px 8px rgba(0,0,0,.3)">
+          <!-- Corner legs -->
+          <div style="position:absolute;left:-6px;top:4px;width:6px;height:2.5px;background:#ccc"></div>
+          <div style="position:absolute;right:-6px;top:4px;width:6px;height:2.5px;background:#ccc"></div>
+          <div style="position:absolute;left:-6px;bottom:4px;width:6px;height:2.5px;background:#ccc"></div>
+          <div style="position:absolute;right:-6px;bottom:4px;width:6px;height:2.5px;background:#ccc"></div>
+          <!-- Button cap -->
+          <div style="position:absolute;inset:5px;border-radius:3px;background:${pressed?'#b0bec5':'#546e7a'};border:1.5px solid ${pressed?'#90a4ae':'#37474f'};box-shadow:${pressed?'':'inset 0 3px 6px rgba(0,0,0,.4)'};transition:all .05s"></div>
+        </div>
+        <div style="font-size:7px;color:#607d8b;font-family:'JetBrains Mono',monospace">Pushbutton</div>
+      </div>`;
+    }
+
+    // ═══ POTENTIOMETER ═══
+    case 'pot': {
+      const val = s.val !== undefined ? s.val : 512;
+      const rot = (val/1023)*270 - 135;
+      return `<div style="display:flex;flex-direction:column;align-items:center;height:${h}px;justify-content:center;gap:4px">
+        <div style="position:relative;width:54px;height:54px">
+          <div style="width:54px;height:54px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#8d6e63,#3e2723);border:3px solid #5d4037;box-shadow:0 3px 8px rgba(0,0,0,.35)">
+            <!-- Scale marks -->
+            ${Array.from({length:9}).map((_,i)=>{
+              const angle = -135 + i*33.75;
+              const rad = angle*Math.PI/180;
+              const x1=27+22*Math.cos(rad), y1=27+22*Math.sin(rad);
+              const x2=27+25*Math.cos(rad), y2=27+25*Math.sin(rad);
+              return `<div style="position:absolute;left:${x1}px;top:${y1}px;width:3px;height:1px;background:#6d4c41;transform:rotate(${angle}deg);transform-origin:left center"></div>`;
+            }).join('')}
+          </div>
+          <!-- Needle/wiper -->
+          <div style="position:absolute;bottom:50%;left:50%;width:3px;height:22px;background:#ffd700;transform-origin:bottom center;transform:translateX(-50%) rotate(${rot}deg);border-radius:2px 2px 0 0;box-shadow:0 0 4px rgba(255,215,0,.5);transition:transform .2s"></div>
+          <div style="position:absolute;top:50%;left:50%;width:8px;height:8px;border-radius:50%;background:#4e342e;transform:translate(-50%,-50%);border:2px solid #6d4c41"></div>
+        </div>
+        ${R?`<div style="font-size:9px;color:#e65100;font-family:'JetBrains Mono',monospace">Val: ${val}</div>`:'<div style="font-size:7px;color:#795548;font-family:\'JetBrains Mono\',monospace">Potentiometer</div>'}
+        <div style="display:flex;gap:8px">${['G','W','V'].map((l,i)=>`<div style="display:flex;flex-direction:column;align-items:center"><div style="width:2px;height:8px;background:${i===0?'#212121':i===2?'#e53935':'#888'}"></div><div style="font-size:6px;color:${i===0?'#212121':i===2?'#e53935':'#888'};font-family:'JetBrains Mono',monospace">${l}</div></div>`).join('')}</div>
+      </div>`;
+    }
+
+    // ═══ LEDs ═══
+    case 'led_r': case 'led_g': case 'led_b': case 'led_y': case 'led_w': case 'led_rgb': {
+      const LC = {led_r:'#f44336',led_g:'#4caf50',led_b:'#2196f3',led_y:'#ffc107',led_w:'#e0e0e0',led_rgb:'#9c27b0'}[comp.type];
+      const lit = R && on;
+      const glClass = {led_r:'gl-r',led_g:'gl-g',led_b:'gl-b',led_y:'gl-y',led_w:'gl-w',led_rgb:'gl-p'}[comp.type];
+      return `<div style="display:flex;flex-direction:column;align-items:center;height:${h}px;padding-top:4px">
+        <!-- Dome -->
+        <div class="${lit?glClass:''}" style="width:30px;height:38px;border-radius:50% 50% 28% 28%;background:${lit?LC:'#eceff1'};border:3px solid ${LC};transition:all .15s;position:relative;box-shadow:${lit?'0 0 24px '+LC+',0 0 48px '+LC+'44':'0 2px 4px rgba(0,0,0,.15)'}">
+          ${lit?'<div style="position:absolute;top:5px;left:5px;width:9px;height:14px;background:rgba(255,255,255,.45);border-radius:50%;transform:rotate(-20deg)"></div>':''}
+        </div>
+        <!-- Leads -->
+        <div style="display:flex;gap:7px;margin-top:1px">
+          <div style="width:2.5px;height:22px;background:#9e9e9e;border-radius:1px"></div>
+          <div style="width:2.5px;height:28px;background:#9e9e9e;border-radius:1px"></div>
+        </div>
+        <div style="font-size:8px;color:${LC};font-weight:700;margin-top:1px">${comp.pin?`Pin ${comp.pin}`:comp.def.n.replace('LED ','LED')}</div>
+      </div>`;
+    }
+
+    // ═══ BUZZER ═══
+    case 'buzzer': {
+      const buz = R && on;
+      return `<div style="display:flex;flex-direction:column;align-items:center;height:${h}px;justify-content:center;gap:4px">
+        <div class="${buz?'gl-o':''}" style="width:48px;height:48px;border-radius:50%;background:${buz?'#fff9c4':'#fafafa'};border:4px solid #ff8f00;display:flex;align-items:center;justify-content:center;transition:all .1s">
+          <div style="font-size:24px">🔔</div>
+        </div>
+        ${buz?'<div style="font-size:9px;color:#e65100;font-family:\'JetBrains Mono\',monospace;animation:blink .3s infinite">♪ BEEP ♫</div>':'<div style="font-size:7px;color:#888;font-family:\'JetBrains Mono\',monospace">Piezo Buzzer</div>'}
+      </div>`;
+    }
+
+    // ═══ SERVO ═══
+    case 'servo': {
+      const angle = R && s.angle !== undefined ? s.angle : 90;
+      return `<div style="display:flex;flex-direction:column;align-items:center;height:${h}px;justify-content:center;gap:4px">
+        <div style="width:92px;height:42px;background:linear-gradient(180deg,#1a6fc4,#1565c0,#0d47a1);border-radius:6px;position:relative;border:2px solid #0a3d7a;box-shadow:0 4px 10px rgba(0,0,0,.3)">
+          <div style="position:absolute;left:6px;top:3px;font-size:6.5px;color:#90caf9;font-family:'JetBrains Mono',monospace;font-weight:700">SERVO SG90</div>
+          <!-- Servo body detail -->
+          <div style="position:absolute;left:6px;bottom:4px;width:52px;height:18px;background:rgba(0,0,0,.2);border-radius:3px"></div>
+          <!-- Shaft housing -->
+          <div style="position:absolute;right:10px;top:50%;transform:translateY(-50%);width:26px;height:26px;border-radius:50%;background:#ffd700;border:3px solid #ff8f00;display:flex;align-items:center;justify-content:center">
+            <!-- Arm -->
+            <div style="position:absolute;top:50%;left:50%;width:36px;height:7px;background:#ffb300;border-radius:4px;transform-origin:10% center;transform:translateY(-50%) rotate(${angle-90}deg);transition:transform .3s ease;border:1.5px solid #f57f17;box-shadow:0 1px 3px rgba(0,0,0,.2)">
+              <div style="position:absolute;right:4px;top:50%;transform:translateY(-50%);width:5px;height:5px;border-radius:50%;background:#fff;border:1.5px solid #ff8f00"></div>
+            </div>
+            <div style="width:6px;height:6px;border-radius:50%;background:#333;position:relative;z-index:1"></div>
+          </div>
+        </div>
+        <div style="font-size:9px;color:#1565c0;font-family:'JetBrains Mono',monospace">${R?`Angle: ${angle}°`:'Servo SG90'}</div>
+        <div style="display:flex;gap:2px">${['GND','VCC','SIG'].map((l,i)=>`<div style="width:5px;height:10px;background:${i===0?'#212121':i===1?'#e53935':'#ffc107'};border-radius:0 0 2px 2px"></div>`).join('')}</div>
+      </div>`;
+    }
+
+    // ═══ DC MOTOR ═══
+    case 'dcmotor': {
+      const spinning = R && on;
+      return `<div style="display:flex;flex-direction:column;align-items:center;height:${h}px;justify-content:center;gap:4px">
+        <div style="width:56px;height:56px;border-radius:50%;background:radial-gradient(circle,#eceff1,#b0bec5);border:4px solid #c62828;display:flex;align-items:center;justify-content:center;${spinning?'animation:spin .6s linear infinite':''}">
+          <div style="font-size:28px">🔄</div>
+        </div>
+        <div style="font-size:8px;color:#c62828;font-family:'JetBrains Mono',monospace">${spinning?'▶ Running':'DC Motor'}</div>
+      </div>`;
+    }
+
+    // ═══ LCD ═══
+    case 'lcd': case 'lcd_i2c': {
+      const ll = s.lcdLines || ['',''];
+      return `<div style="display:flex;flex-direction:column;align-items:center;height:${h}px;justify-content:center;gap:4px">
+        <!-- LCD outer bezel -->
+        <div style="width:${w-6}px;height:62px;background:#005000;border:3px solid #1b5e20;border-radius:5px;padding:5px;box-shadow:0 3px 10px rgba(0,0,0,.4)">
+          <!-- LCD screen -->
+          <div style="background:#002200;border-radius:3px;height:100%;padding:4px 5px;border:1px solid #003300">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9.5px;color:#00e676;letter-spacing:.4px;height:14px;overflow:hidden">${R?(ll[0]||'').padEnd(16,' ').slice(0,16):' LCD 16x2 Display  '}</div>
+            <div style="width:100%;height:1px;background:#003300;margin:2px 0"></div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9.5px;color:#00e676;letter-spacing:.4px;height:14px;overflow:hidden">${R?(ll[1]||'').padEnd(16,' ').slice(0,16):'                  '}</div>
+          </div>
+        </div>
+        ${comp.type==='lcd_i2c'?`<div style="font-size:8px;color:#1b5e20;font-family:'JetBrains Mono',monospace">I2C · 0x27</div>`:''}
+      </div>`;
+    }
+
+    // ═══ DHT11/DHT22 ═══
+    case 'dht11': case 'dht22': {
+      const col = comp.type==='dht11'?'#1565c0':'#1b5e20';
+      return `<div style="display:flex;flex-direction:column;align-items:center;height:${h}px;justify-content:center;gap:4px">
+        <div style="width:${w-14}px;height:${h-26}px;background:${col};border:2.5px solid ${col};border-radius:8px 8px 4px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;box-shadow:0 2px 6px rgba(0,0,0,.2)">
+          <!-- Sensor holes -->
+          <div style="width:${w-28}px;height:${h-46}px;background:rgba(0,0,0,.2);border-radius:4px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1px">
+            ${Array.from({length:4}).map(()=>`<div style="display:flex;gap:2px">${Array.from({length:4}).map(()=>'<div style="width:3px;height:3px;border-radius:1px;background:rgba(0,0,0,.4)"></div>').join('')}</div>`).join('')}
+          </div>
+          <div style="font-size:8px;color:#fff;font-weight:700;font-family:'JetBrains Mono',monospace">${comp.type.toUpperCase()}</div>
+          ${R?`<div style="font-size:7px;color:rgba(255,255,255,.8);font-family:'JetBrains Mono',monospace">🌡${s.temp||28}°C 💧${s.hum||65}%</div>`:''}
+        </div>
+        <div style="display:flex;gap:8px">${[1,2,3,4].map(i=>`<div style="width:3px;height:10px;background:#777;border-radius:1px"></div>`).join('')}</div>
+      </div>`;
+    }
+
+    // ═══ PIR ═══
+    case 'pir': {
+      const motion = R && on;
+      return `<div style="display:flex;flex-direction:column;align-items:center;height:${h}px;justify-content:center;gap:4px">
+        <div class="${motion?'gl-o':''}" style="width:58px;height:58px;border-radius:50%;background:${motion?'#fff8e1':'#fafafa'};border:4px solid #ff8f00;display:flex;align-items:center;justify-content:center;transition:all .15s">
+          <div style="width:38px;height:38px;border-radius:50%;border:3px solid #ff8f00;display:flex;align-items:center;justify-content:center">
+            <div style="width:18px;height:18px;border-radius:50%;border:3px solid #ff8f00;background:${motion?'rgba(255,152,0,.4)':'transparent'}"></div>
+          </div>
+        </div>
+        <div style="font-size:9px;color:#e65100;font-weight:700">${R?(motion?'🚶 MOTION!':'• Idle'):'PIR Sensor'}</div>
+        <div style="display:flex;gap:10px">${['VCC','OUT','GND'].map((l,i)=>`<div style="display:flex;flex-direction:column;align-items:center"><div style="width:3px;height:8px;background:${i===0?'#e53935':i===2?'#212121':'#888'}"></div><div style="font-size:6px;color:${i===0?'#e53935':i===2?'#333':'#888'};font-family:'JetBrains Mono',monospace">${l}</div></div>`).join('')}</div>
+      </div>`;
+    }
+
+    // ═══ ULTRASONIC ═══
+    case 'ultrasonic': {
+      return `<div style="display:flex;flex-direction:column;align-items:center;height:${h}px;justify-content:center;gap:4px">
+        <div style="width:${w-8}px;height:40px;background:#e8eaf6;border:2.5px solid #3f51b5;border-radius:5px;display:flex;align-items:center;justify-content:space-between;padding:0 8px;box-shadow:0 2px 6px rgba(0,0,0,.15)">
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <div style="width:24px;height:24px;border-radius:50%;background:radial-gradient(circle,#e0e0e0,#9e9e9e);border:2.5px solid #3f51b5;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#1a237e">T</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:7px;color:#1a237e;font-family:'JetBrains Mono',monospace;font-weight:700">HC-SR04</div>
+            ${R?`<div style="font-size:7px;color:#3f51b5;font-family:'JetBrains Mono',monospace">${s.dist||25} cm</div>`:''}
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <div style="width:24px;height:24px;border-radius:50%;background:radial-gradient(circle,#e0e0e0,#9e9e9e);border:2.5px solid #3f51b5;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#1a237e">R</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px">${['VCC','TRG','ECH','GND'].map((l,i)=>`<div style="display:flex;flex-direction:column;align-items:center"><div style="width:3px;height:10px;background:${i===0?'#e53935':i===3?'#212121':'#888'}"></div><div style="font-size:6px;color:${i===0?'#e53935':i===3?'#333':'#888'};font-family:'JetBrains Mono',monospace">${l}</div></div>`).join('')}</div>
+      </div>`;
+    }
+
+    // ═══ RELAY ═══
+    case 'relay': {
+      const rel = R && on;
+      return `<div style="display:flex;flex-direction:column;align-items:center;height:${h}px;justify-content:center;gap:4px">
+        <div style="width:${w-6}px;height:54px;background:#b71c1c;border:2.5px solid #e53935;border-radius:5px;display:flex;align-items:center;justify-content:space-between;padding:0 10px;box-shadow:0 3px 8px rgba(0,0,0,.25)">
+          <div style="width:30px;height:38px;background:repeating-linear-gradient(90deg,#7b0000,#7b0000 3px,#c62828 3px,#c62828 6px);border-radius:3px;border:1.5px solid #ffcdd2"></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+            <div style="font-size:7px;color:#ffcdd2;font-family:'JetBrains Mono',monospace">RELAY</div>
+            <div style="width:24px;height:8px;background:#333;border-radius:2px;border:1px solid #555"></div>
+            <div style="width:24px;height:8px;background:${rel?'#43a047':'#888'};border-radius:2px;border:1px solid #555;transition:background .2s"></div>
+            <div style="width:24px;height:8px;background:#333;border-radius:2px;border:1px solid #555"></div>
+          </div>
+        </div>
+        <div style="padding:2px 8px;border-radius:4px;background:${rel?'#e8f5e9':'#ffebee'};border:1px solid ${rel?'#a5d6a7':'#ffcdd2'};font-size:9px;color:${rel?'#2e7d32':'#c62828'};font-weight:700">${R?(rel?'CLOSED':'OPEN'):'RELAY SPDT'}</div>
+      </div>`;
+    }
+
+    // ═══ 9V BATTERY ═══
+    case 'bat9v':
+      return `<div style="display:flex;flex-direction:column;align-items:center;height:${h}px;justify-content:center;gap:4px">
+        <div style="width:66px;height:54px;background:linear-gradient(180deg,#1a1a1a 0%,#333 50%,#1a1a1a 100%);border-radius:5px;border:2px solid #444;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px rgba(0,0,0,.4)">
+          <div style="width:52px;height:34px;background:#fff9c4;border:1.5px solid #f9a825;border-radius:3px;display:flex;align-items:center;justify-content:center">
+            <div style="font-size:13px;font-weight:700;color:#e65100;font-family:'JetBrains Mono',monospace">9V</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <div style="display:flex;flex-direction:column;align-items:center"><div style="width:4px;height:10px;background:#e53935;border-radius:1px"></div><div style="font-size:7px;color:#e53935;font-family:'JetBrains Mono',monospace">+</div></div>
+          <div style="display:flex;flex-direction:column;align-items:center"><div style="width:4px;height:10px;background:#212121;border-radius:1px"></div><div style="font-size:7px;color:#333;font-family:'JetBrains Mono',monospace">-</div></div>
+        </div>
+      </div>`;
+
+    // ═══ NPN TRANSISTOR ═══
+    case 'npn': case 'pnp':
+      return `<div style="display:flex;flex-direction:column;align-items:center;height:${h}px;justify-content:center;gap:4px;position:relative">
+        <div style="width:44px;height:54px;background:#1a1a1a;border-radius:4px;border:2px solid #424242;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,.4)">
+          <span style="font-size:14px;color:#80cbc4;font-weight:700;font-family:'JetBrains Mono',monospace">${comp.type==='npn'?'N':'P'}</span>
+        </div>
+        <div style="display:flex;gap:6px">${['B','C','E'].map((l,i)=>`<div style="display:flex;flex-direction:column;align-items:center"><div style="width:3px;height:10px;background:${i===0?'#ffc107':i===1?'#e53935':'#212121'}"></div><div style="font-size:6px;color:#888;font-family:'JetBrains Mono',monospace">${l}</div></div>`).join('')}</div>
+        <div style="font-size:7px;color:#555;font-family:'JetBrains Mono',monospace">${comp.def.d}</div>
+      </div>`;
+
+    // ═══ 555 TIMER ═══
+    case 'ic555':
+      return `<div style="width:${w}px;height:${h}px;background:#212121;border-radius:5px;border:2px solid #424242;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;box-shadow:0 3px 8px rgba(0,0,0,.4)">
+        <div style="position:absolute;top:6px;left:50%;transform:translateX(-50%);width:16px;height:5px;border-radius:50%;background:#1a1a1a;border:1.5px solid #424242"></div>
+        <div style="font-size:22px;font-weight:700;color:#80cbc4;font-family:'JetBrains Mono',monospace">555</div>
+        <div style="font-size:7px;color:#666;font-family:'JetBrains Mono',monospace">Timer IC</div>
+        <!-- Left legs -->
+        ${[0,1,2,3].map(i=>`<div style="position:absolute;left:-8px;top:${14+i*16}px;width:8px;height:2.5px;background:#9e9e9e;border-radius:2px 0 0 2px"></div>`).join('')}
+        <!-- Right legs -->
+        ${[0,1,2,3].map(i=>`<div style="position:absolute;right:-8px;top:${14+i*16}px;width:8px;height:2.5px;background:#9e9e9e;border-radius:0 2px 2px 0"></div>`).join('')}
+      </div>`;
+
+    // ═══ 7-SEGMENT ═══
+    case 'seg7': {
+      const digit = R && s.digit !== undefined ? s.digit : '—';
+      return `<div style="display:flex;flex-direction:column;align-items:center;height:${h}px;justify-content:center;gap:4px">
+        <div style="width:56px;height:76px;background:#0d0000;border:2.5px solid #c62828;border-radius:4px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,.4)">
+          <div style="font-size:44px;font-family:'JetBrains Mono',monospace;color:${R&&on?'#f44336':'#1a0000'};text-shadow:${R&&on?'0 0 14px #f44336':'none'};line-height:1">${R?digit:'8'}</div>
+        </div>
+        <div style="font-size:7px;color:#888;font-family:'JetBrains Mono',monospace">7-Seg CC</div>
+      </div>`;
+    }
+
+    // ═══ NEOPIXEL ═══
+    case 'neopixel': {
+      const neo = R && on;
+      return `<div style="display:flex;flex-direction:column;align-items:center;height:${h}px;justify-content:center;gap:4px">
+        <div class="${neo?'gl-p':''}" style="width:48px;height:48px;background:#fff;border:3px solid #ce93d8;border-radius:8px;display:flex;align-items:center;justify-content:center;box-shadow:${neo?'0 0 20px #9c27b0,0 0 40px #9c27b055':'0 2px 6px rgba(0,0,0,.15)'}">
+          <div style="width:30px;height:30px;border-radius:50%;background:${neo?'#e040fb':'#f3e5f5'};box-shadow:${neo?'0 0 14px #e040fb':'none'}"></div>
+        </div>
+        <div style="font-size:7px;color:#7b1fa2;font-family:'JetBrains Mono',monospace">WS2812B</div>
+      </div>`;
+    }
+
+    // ═══ LM7805 ═══
+    case 'lm7805':
+      return `<div style="display:flex;flex-direction:column;align-items:center;height:${h}px;justify-content:center;gap:4px">
+        <div style="width:52px;height:52px;background:linear-gradient(180deg,#424242,#212121);border-radius:4px 4px 3px 3px;border:2px solid #616161;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,.35)">
+          <div style="font-size:8px;color:#80cbc4;font-family:'JetBrains Mono',monospace;font-weight:700">LM7805</div>
+          <div style="font-size:7px;color:#546e7a;font-family:'JetBrains Mono',monospace">+5V Reg</div>
+        </div>
+        <div style="display:flex;gap:6px">${['IN','GND','OUT'].map((l,i)=>`<div style="display:flex;flex-direction:column;align-items:center"><div style="width:3px;height:10px;background:${i===0?'#e53935':i===1?'#212121':'#43a047'}"></div><div style="font-size:6px;color:#888;font-family:'JetBrains Mono',monospace">${l}</div></div>`).join('')}</div>
+      </div>`;
+
+    // ═══ L298N ═══
+    case 'l298n':
+      return `<div style="width:${w}px;height:${h}px;background:#1565c0;border:2.5px solid #0d47a1;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;box-shadow:0 4px 10px rgba(0,0,0,.3)">
+        <div style="font-size:9px;color:#e3f2fd;font-weight:700;font-family:'JetBrains Mono',monospace">L298N</div>
+        <div style="width:52px;height:34px;background:#1a1a1a;border-radius:4px;border:1px solid #444;display:flex;align-items:center;justify-content:center">
+          <div style="font-size:6px;color:#666;font-family:'JetBrains Mono',monospace;text-align:center">DUAL H-BRIDGE<br/>MOTOR DRIVER</div>
+        </div>
+        <!-- Heatsink fins -->
+        ${[0,1,2,3].map(i=>`<div style="position:absolute;top:${8+i*8}px;right:-3px;width:3px;height:6px;background:#1976d2;border-radius:0 2px 2px 0"></div>`).join('')}
+      </div>`;
+
+    // ═══ SOIL MOISTURE ═══
+    case 'soil':
+      return `<div style="display:flex;flex-direction:column;align-items:center;height:${h}px;justify-content:center;gap:3px">
+        <div style="width:${w-12}px;height:${h-30}px;background:#e8f5e9;border:2px solid #2e7d32;border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
+          <div style="font-size:16px">🌱</div>
+          <div style="font-size:7px;color:#2e7d32;font-family:'JetBrains Mono',monospace;font-weight:700">SOIL</div>
+          ${R?`<div style="font-size:7px;color:#43a047;font-family:'JetBrains Mono',monospace">${s.val||350}</div>`:''}
+        </div>
+        <div style="display:flex;gap:5px">${['VCC','AO','DO','GND'].map((l,i)=>`<div style="display:flex;flex-direction:column;align-items:center"><div style="width:2px;height:8px;background:${i===0?'#e53935':i===3?'#212121':'#888'}"></div><div style="font-size:5.5px;color:#888;font-family:'JetBrains Mono',monospace">${l}</div></div>`).join('')}</div>
+      </div>`;
+
+    // ═══ MQ-2 ═══
+    case 'mq2':
+      return `<div style="display:flex;flex-direction:column;align-items:center;height:${h}px;justify-content:center;gap:4px">
+        <div style="width:58px;height:58px;border-radius:50%;background:#d0d0d0;border:4px solid #9e9e9e;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,.3)">
+          <div style="width:32px;height:32px;border-radius:50%;background:#607d8b;display:flex;align-items:center;justify-content:center;font-size:18px">💨</div>
+        </div>
+        <div style="font-size:8px;color:#607d8b;font-family:'JetBrains Mono',monospace">${R?`PPM: ${s.ppm||45}`:'MQ-2 Gas'}</div>
+      </div>`;
+
+    // ═══ SLIDESWITCH ═══
+    case 'slideswitch': {
+      const sw = R && on;
+      return `<div style="display:flex;flex-direction:column;align-items:center;height:${h}px;justify-content:center;gap:4px">
+        <div style="width:52px;height:28px;background:#37474f;border-radius:5px;border:2px solid #263238;position:relative;box-shadow:0 2px 6px rgba(0,0,0,.25)">
+          <!-- Track -->
+          <div style="position:absolute;top:50%;left:6px;right:6px;height:6px;background:#263238;border-radius:3px;transform:translateY(-50%)"></div>
+          <!-- Slider -->
+          <div style="position:absolute;top:50%;${sw?'right:4px':'left:4px'};width:18px;height:20px;background:#78909c;border-radius:4px;transform:translateY(-50%);transition:all .15s;border:1.5px solid #90a4ae"></div>
+        </div>
+        <div style="font-size:7px;color:#546e7a;font-family:'JetBrains Mono',monospace">Slideswitch</div>
+      </div>`;
+    }
+
+    // ═══ LDR ═══
+    case 'ldr':
+      return `<div style="display:flex;flex-direction:column;align-items:center;height:${h}px;justify-content:center;gap:3px">
+        <div style="width:36px;height:36px;border-radius:50%;background:radial-gradient(circle,#fff9c4,#f9a825);border:3px solid #f57f17;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.2)">
+          <div style="font-size:18px">☀️</div>
+        </div>
+        ${R?`<div style="font-size:8px;color:#e65100;font-family:'JetBrains Mono',monospace">${s.val||750}</div>`:'<div style="font-size:7px;color:#888">LDR</div>'}
+        <div style="display:flex;gap:6px"><div style="width:2.5px;height:10px;background:#888"></div><div style="width:2.5px;height:10px;background:#888"></div></div>
+      </div>`;
+
+    // ═══ IR SENSOR ═══
+    case 'ir_sensor':
+      return `<div style="display:flex;flex-direction:column;align-items:center;height:${h}px;justify-content:center;gap:3px">
+        <div style="width:56px;height:40px;background:#e8eaf6;border:2px solid #3f51b5;border-radius:5px;display:flex;align-items:center;justify-content:space-evenly;padding:0 6px;box-shadow:0 2px 6px rgba(0,0,0,.15)">
+          <div style="width:14px;height:14px;border-radius:50%;background:#1a237e;border:2px solid #3f51b5"></div>
+          <div style="font-size:6.5px;color:#1a237e;font-family:'JetBrains Mono',monospace;font-weight:700">IR</div>
+          <div style="width:14px;height:14px;border-radius:50%;background:#880e4f;border:2px solid #ad1457"></div>
+        </div>
+        ${R?`<div style="font-size:8px;color:#3f51b5;font-family:'JetBrains Mono',monospace">${on?'DETECT':'Clear'}</div>`:'<div style="font-size:7px;color:#888">IR Sensor</div>'}
+      </div>`;
+
+    // ═══ TOUCH SENSOR ═══
+    case 'touch':
+      return `<div style="display:flex;flex-direction:column;align-items:center;height:${h}px;justify-content:center;gap:3px">
+        <div class="${R&&on?'gl-y':''}" style="width:50px;height:36px;background:#fff9c4;border:2.5px solid #ffc107;border-radius:5px;display:flex;align-items:center;justify-content:center;box-shadow:${R&&on?'0 0 12px #ffc107':'0 2px 5px rgba(0,0,0,.1)'}">
+          <div style="font-size:18px">👆</div>
+        </div>
+        <div style="font-size:7px;color:#f57f17;font-family:'JetBrains Mono',monospace">TTP223 Touch</div>
+      </div>`;
+
+    // ═══ JOYSTICK ═══
+    case 'joystick':
+      return `<div style="display:flex;flex-direction:column;align-items:center;height:${h}px;justify-content:center;gap:4px">
+        <div style="width:56px;height:56px;background:#2d3748;border-radius:6px;border:2.5px solid #1a202c;display:flex;align-items:center;justify-content:center;position:relative;box-shadow:0 3px 8px rgba(0,0,0,.3)">
+          <div style="width:36px;height:36px;border-radius:50%;background:#424242;border:2px solid #616161;display:flex;align-items:center;justify-content:center">
+            <div style="width:16px;height:16px;border-radius:50%;background:#78909c;border:2px solid #90a4ae"></div>
+          </div>
+        </div>
+        <div style="font-size:7px;color:#607d8b;font-family:'JetBrains Mono',monospace">Joystick 2-axis</div>
+      </div>`;
+
+    // ═══ KEYPAD ═══
+    case 'keypad': {
+      const keys = ['1','2','3','A','4','5','6','B','7','8','9','C','*','0','#','D'];
+      return `<div style="display:flex;flex-direction:column;align-items:center;height:${h}px;justify-content:center;gap:2px">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px;padding:6px;background:#263238;border-radius:6px;border:2px solid #1a2327;box-shadow:0 3px 8px rgba(0,0,0,.35)">
+          ${keys.map(k=>`<div style="width:14px;height:14px;background:${/[ABCD]/.test(k)?'#1565c0':'#455a64'};border-radius:3px;border:1px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:7px;color:#fff;font-family:'JetBrains Mono',monospace;font-weight:700">${k}</div>`).join('')}
+        </div>
+        <div style="font-size:7px;color:#546e7a;font-family:'JetBrains Mono',monospace">4×4 Keypad</div>
+      </div>`;
+    }
+
+    // ═══ micro:bit ═══
+    case 'microbit':
+      return `<div style="width:${w}px;height:${h}px;background:#ffcc02;border-radius:10px;border:3px solid #f0a500;position:relative;box-shadow:0 4px 12px rgba(0,0,0,.25)">
+        <!-- LED matrix 5×5 -->
+        <div style="position:absolute;top:10px;left:50%;transform:translateX(-50%);display:grid;grid-template-columns:repeat(5,1fr);gap:2px;width:55px">
+          ${Array.from({length:25}).map((_,i)=>`<div style="width:9px;height:9px;border-radius:50%;background:${R&&on&&i%3===0?'#e53935':'#cc9900'}"></div>`).join('')}
+        </div>
+        <!-- Buttons -->
+        <div style="position:absolute;bottom:28px;left:6px;width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid #888;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700">A</div>
+        <div style="position:absolute;bottom:28px;right:6px;width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid #888;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700">B</div>
+        <div style="position:absolute;bottom:0;left:8px;right:8px;height:12px;background:#888;border-radius:0 0 7px 7px;display:flex;justify-content:space-around;align-items:center">
+          ${['0','1','2','3V','GND'].map(p=>`<div style="font-size:5.5px;color:#fff;font-family:'JetBrains Mono',monospace">${p}</div>`).join('')}
+        </div>
+        <div style="position:absolute;top:72px;left:50%;transform:translateX(-50%);font-size:7px;font-weight:700;color:#333;white-space:nowrap">micro:bit</div>
+      </div>`;
+
+    // ═══ COIN CELL ═══
+    case 'coin3v': case 'bat15v':
+      return `<div style="display:flex;flex-direction:column;align-items:center;height:${h}px;justify-content:center;gap:3px">
+        <div style="width:${w-10}px;height:${comp.type==='coin3v'?18:34}px;background:linear-gradient(90deg,#9e9e9e,#e0e0e0,#9e9e9e);border-radius:${comp.type==='coin3v'?9:4}px;border:2px solid #757575;display:flex;align-items:center;justify-content:center">
+          <div style="font-size:8px;color:#333;font-family:'JetBrains Mono',monospace;font-weight:700">${comp.type==='coin3v'?'3V':'1.5V'}</div>
+        </div>
+      </div>`;
+
+    default:
+      return `<div style="width:${w}px;height:${h}px;background:#e8edf2;border:2px solid #b0bec5;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px">
+        <div style="font-size:24px">${comp.def.ic}</div>
+        <div style="font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace">${comp.def.n}</div>
+      </div>`;
+  }
+}
+
+function updateSimVis(id) {
+  const comp = comps.find(c=>c.id===id); if(!comp) return;
+  const el = comp.el; if(!el) return;
+  const parts = el.querySelectorAll(':scope > *:not(.pindot):not(.selbar)');
+  const newHTML = buildHTML(comp);
+  const tmp = document.createElement('div');
+  tmp.innerHTML = newHTML;
+  const existing = el.querySelector('div:not(.pindot):not(.selbar)');
+  if(existing) existing.replaceWith(tmp.firstElementChild);
+}
+
+function updateAllSimVis() { comps.forEach(c=>updateSimVis(c.id)); }
+
+// ══════════════════════════════════════════
+// SIMULATION
+// ══════════════════════════════════════════
+const DEFAULT_CODE = `// IoT Lab Simulation
+// Arduino Uno R3
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(13, OUTPUT);
+  Serial.println("Lab shuru ho gaya!");
+}
+
+void loop() {
+  digitalWrite(13, HIGH);
+  Serial.println("LED ON");
+  delay(1000);
+  
+  digitalWrite(13, LOW);
+  Serial.println("LED OFF");
+  delay(1000);
+}`;
+
+function startSim() {
+  if(running) return;
+  running = true;
+  simSec = 0;
+  simState = {};
+  document.getElementById('btnRun').style.display='none';
+  document.getElementById('btnStop').style.display='flex';
+  document.getElementById('simDot').classList.add('on');
+  document.getElementById('simSt').textContent='Running...';
+  parseSim();
+  simHandle = setInterval(simTick, 500);
+  addSerial('Simulation shuru hua...','t');
+  logToFB('sim_start',{time:new Date().toISOString()});
+}
+
+function stopSim() {
+  running = false;
+  clearInterval(simHandle); simHandle=null;
+  document.getElementById('btnRun').style.display='flex';
+  document.getElementById('btnStop').style.display='none';
+  document.getElementById('simDot').classList.remove('on');
+  document.getElementById('simSt').textContent='Stopped';
+  simState={};
+  updateAllSimVis();
+  addSerial('Simulation band kiya.','w');
+}
+
+let _simCmds=[], _simIdx=0, _inDelay=false, _delayUntil=0;
+
+function parseSim() {
+  const code = document.getElementById('ceditor').value;
+  _simCmds=[]; _simIdx=0;
+  const loop = code.match(/void\s+loop\s*\(\s*\)[^{]*\{([\s\S]*?)(?=^void\s|\Z)/m);
+  if(!loop) return;
+  const body = loop[1];
+  const lines = body.split('\n');
+  lines.forEach(line => {
+    line=line.trim();
+    const dw = line.match(/digitalWrite\s*\(\s*(\d+)\s*,\s*(HIGH|LOW)\s*\)/);
+    if(dw) _simCmds.push({type:'dw',pin:+dw[1],val:dw[2]==='HIGH'});
+    const aw = line.match(/analogWrite\s*\(\s*(\d+)\s*,\s*(\d+)\s*\)/);
+    if(aw) _simCmds.push({type:'aw',pin:+aw[1],val:+aw[2]});
+    const sv = line.match(/servo\w*\.write\s*\(\s*(\d+)\s*\)/i);
+    if(sv) _simCmds.push({type:'servo',angle:+sv[1]});
+    const tn = line.match(/tone\s*\(\s*(\d+)/);
+    if(tn) _simCmds.push({type:'tone',pin:+tn[1]});
+    const nt = line.match(/noTone\s*\(\s*(\d+)\s*\)/);
+    if(nt) _simCmds.push({type:'notone',pin:+nt[1]});
+    const dl = line.match(/delay\s*\(\s*(\d+)\s*\)/);
+    if(dl) _simCmds.push({type:'delay',ms:+dl[1]});
+    const sp = line.match(/Serial\.print(?:ln)?\s*\(\s*["']?([^"')]+)["']?\s*\)/);
+    if(sp) _simCmds.push({type:'serial',msg:sp[1]});
+    const lcd = line.match(/lcd\.print\s*\(\s*["']?([^"')]+)["']?\s*\)/);
+    if(lcd) _simCmds.push({type:'lcd',msg:lcd[1]});
+  });
+  // Setup parse
+  const setup = code.match(/void\s+setup\s*\(\s*\)[^{]*\{([\s\S]*?)(?=^void\s|\Z)/m);
+  if(setup) {
+    setup[1].split('\n').forEach(line=>{
+      line=line.trim();
+      const sp=line.match(/Serial\.println?\s*\(\s*["']([^"']+)["']\s*\)/);
+      if(sp) setTimeout(()=>addSerial(sp[1],'s'),100);
+    });
+  }
+}
+
+let _lcdLine = 0;
+function simTick() {
+  if(!running) return;
+  simSec++;
+  // Execute commands
+  const now = Date.now();
+  if(_inDelay && now < _delayUntil) return;
+  _inDelay = false;
+
+  for(let i=0; i<5 && _simIdx<_simCmds.length; i++) {
+    const cmd = _simCmds[_simIdx++];
+    if(!cmd) { _simIdx=0; break; }
+    execCmd(cmd);
+    if(cmd.type==='delay') {
+      _inDelay=true; _delayUntil=now+Math.min(cmd.ms,2000);
+      break;
+    }
+  }
+  if(_simIdx >= _simCmds.length) _simIdx=0;
+
+  // Animate sensors
+  comps.forEach(c=>{
+    if(['dht11','dht22'].includes(c.type)) {
+      simState[c.id]={...simState[c.id],temp:24+Math.round(Math.random()*8),hum:55+Math.round(Math.random()*20)};
+    }
+    if(c.type==='ultrasonic') simState[c.id]={...simState[c.id],dist:10+Math.round(Math.random()*80)};
+    if(c.type==='pot') simState[c.id]={...simState[c.id],val:Math.round(Math.random()*1023)};
+    if(c.type==='ldr') simState[c.id]={...simState[c.id],val:200+Math.round(Math.random()*700)};
+    if(c.type==='mq2') simState[c.id]={...simState[c.id],ppm:10+Math.round(Math.random()*200)};
+    if(c.type==='pir') simState[c.id]={...simState[c.id],on:Math.random()>.6};
+    if(['ir_sensor','soil','touch'].includes(c.type)) simState[c.id]={...simState[c.id],on:Math.random()>.5};
+  });
+  updateAllSimVis();
+}
+
+function execCmd(cmd) {
+  if(cmd.type==='dw') {
+    comps.forEach(c=>{
+      if(c.pin==cmd.pin || c.pin===''+cmd.pin) simState[c.id]={...simState[c.id],on:cmd.val};
+    });
+    addSerial(`Pin ${cmd.pin} → ${cmd.val?'HIGH':'LOW'}`,'p');
+  } else if(cmd.type==='aw') {
+    comps.forEach(c=>{
+      if(c.pin==cmd.pin) simState[c.id]={...simState[c.id],on:cmd.val>30,brightness:cmd.val};
+    });
+  } else if(cmd.type==='servo') {
+    comps.filter(c=>c.type==='servo').forEach(c=>simState[c.id]={...simState[c.id],angle:cmd.angle});
+  } else if(cmd.type==='tone') {
+    comps.filter(c=>c.type==='buzzer').forEach(c=>simState[c.id]={...simState[c.id],on:true});
+  } else if(cmd.type==='notone') {
+    comps.filter(c=>c.type==='buzzer').forEach(c=>simState[c.id]={...simState[c.id],on:false});
+  } else if(cmd.type==='serial') {
+    addSerial(cmd.msg,'s');
+  } else if(cmd.type==='lcd') {
+    const lcds = comps.filter(c=>c.type==='lcd'||c.type==='lcd_i2c');
+    lcds.forEach(c=>{
+      if(!simState[c.id]) simState[c.id]={lcdLines:['','']};
+      if(!simState[c.id].lcdLines) simState[c.id].lcdLines=['',''];
+      simState[c.id].lcdLines[_lcdLine%2]=cmd.msg;
+      _lcdLine++;
+    });
+  }
+}
+
+// ══════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════
+function switchTab(name, el) {
+  document.querySelectorAll('.tabpanel').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tbtab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('t'+name).classList.add('on');
+  el.classList.add('active');
+}
+
+// ══════════════════════════════════════════
+// CODE EDITOR
+// ══════════════════════════════════════════
+function syncLN() {
+  const lines = document.getElementById('ceditor').value.split('\n');
+  document.getElementById('lnums').textContent = lines.map((_,i)=>i+1).join('\n');
+}
+function codeKey(e) {
+  if(e.key==='Tab') {
+    e.preventDefault();
+    const el=e.target,s=el.selectionStart;
+    el.value=el.value.substring(0,s)+'  '+el.value.substring(el.selectionEnd);
+    el.selectionStart=el.selectionEnd=s+2; syncLN();
+  }
+}
+const SNIPPETS = {
+  blink:`void setup() {
+  pinMode(13, OUTPUT);
+}
+
+void loop() {
+  digitalWrite(13, HIGH);
+  delay(1000);
+  digitalWrite(13, LOW);
+  delay(1000);
+}`,
+  serial:`void setup() {
+  Serial.begin(9600);
+  Serial.println("Hello World!");
+}
+
+void loop() {
+  Serial.println("Loop chal raha hai...");
+  delay(500);
+}`,
+  servo:`#include <Servo.h>
+Servo myServo;
+
+void setup() {
+  myServo.attach(9);
+}
+
+void loop() {
+  myServo.write(0);
+  delay(1000);
+  myServo.write(90);
+  delay(1000);
+  myServo.write(180);
+  delay(1000);
+}`,
+  dht:`#include <DHT.h>
+#define DHTPIN 2
+#define DHTTYPE DHT11
+DHT dht(DHTPIN, DHTTYPE);
+
+void setup() {
+  Serial.begin(9600);
+  dht.begin();
+}
+
+void loop() {
+  float h = dht.readHumidity();
+  float t = dht.readTemperature();
+  Serial.print("Temp: "); Serial.print(t);
+  Serial.print("°C  Humidity: "); Serial.println(h);
+  delay(2000);
+}`,
+  ultra:`#define TRIG 9
+#define ECHO 10
+
+void setup() {
+  pinMode(TRIG, OUTPUT);
+  pinMode(ECHO, INPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  digitalWrite(TRIG, LOW); delayMicroseconds(2);
+  digitalWrite(TRIG, HIGH); delayMicroseconds(10);
+  digitalWrite(TRIG, LOW);
+  long dur = pulseIn(ECHO, HIGH);
+  float dist = dur * 0.034 / 2;
+  Serial.print("Distance: "); Serial.print(dist); Serial.println(" cm");
+  delay(500);
+}`,
+  lcd:`#include <LiquidCrystal_I2C.h>
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+void setup() {
+  lcd.init();
+  lcd.backlight();
+  lcd.setCursor(0, 0);
+  lcd.print("IoT Lab Ready!");
+  lcd.setCursor(0, 1);
+  lcd.print("Hello World!");
+}
+
+void loop() { }`,
+  pir:`#define PIR_PIN 2
+#define LED_PIN 13
+
+void setup() {
+  pinMode(PIR_PIN, INPUT);
+  pinMode(LED_PIN, OUTPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  if (digitalRead(PIR_PIN) == HIGH) {
+    digitalWrite(LED_PIN, HIGH);
+    Serial.println("Motion detected!");
+  } else {
+    digitalWrite(LED_PIN, LOW);
+  }
+  delay(200);
+}`,
+  analog:`void setup() {
+  Serial.begin(9600);
+}
+
+void loop() {
+  int val = analogRead(A0);
+  Serial.print("A0 Value: ");
+  Serial.println(val);
+  delay(300);
+}`
+};
+
+function snip(name) {
+  document.getElementById('ceditor').value = SNIPPETS[name] || '';
+  syncLN();
+  addSerial(`Template "${name}" load kiya.`,'t');
+}
+
+// ══════════════════════════════════════════
+// SERIAL
+// ══════════════════════════════════════════
+let _serCnt = 0;
+function addSerial(msg, type='t') {
+  _serCnt++;
+  const d = new Date();
+  const ts = `${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+  const el = document.getElementById('sout');
+  const div = document.createElement('div');
+  div.className='sl';
+  div.innerHTML=`<span class="sl-ts">${ts}</span><span class="sl-${type}">${escHTML(msg)}</span>`;
+  el.appendChild(div);
+  el.scrollTop=el.scrollHeight;
+  document.getElementById('serCount').textContent=_serCnt+' lines';
+  serialLines.push({ts,msg,type});
+}
+function escHTML(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function clearSerial(){document.getElementById('sout').innerHTML='';_serCnt=0;serialLines=[];document.getElementById('serCount').textContent='0 lines';}
+
+// ══════════════════════════════════════════
+// SUBMIT
+// ══════════════════════════════════════════
+function doSubmit() {
+  submitted=true;
+  clearInterval(labInt);
+  const data={
+    name:student.name,roll:student.roll,
+    time:new Date().toISOString(),
+    code:document.getElementById('ceditor').value,
+    components:comps.map(c=>({type:c.type,pin:c.pin})),
+    wires:wires.map(w=>({from:w.from,to:w.to})),
+    violations,labSec
+  };
+  if(db) db.ref('submissions/'+sessionId).set(data);
+  document.getElementById('subModal').classList.remove('on');
+  document.getElementById('subModal').innerHTML='<div class="mbox" style="text-align:center"><div style="font-size:60px;margin-bottom:14px">✅</div><h2 style="color:var(--green)">Submit Ho Gaya!</h2><p style="color:var(--muted)">Aapka practical submit kar diya gaya.<br/>Teacher review karenge.</p><div style="margin-top:16px;font-size:13px;color:var(--muted);font-family:\'JetBrains Mono\',monospace">Roll: '+student.roll+'</div></div>';
+  document.getElementById('subModal').classList.add('on');
+  addSerial('✅ Practical submit kiya gaya!','s');
+}
+function closeModal(){document.getElementById('subModal').classList.remove('on');}
+
+// ══════════════════════════════════════════
+// FIREBASE SAVE
+// ══════════════════════════════════════════
+function saveToFB() {
+  if(!db||!sessionId) return;
+  try {
+    db.ref('sessions/'+sessionId+'/state').set({
+      components:comps.length,
+      wires:wires.length,
+      running,
+      lastUpdate:new Date().toISOString()
+    });
+  } catch(e){}
+}
+</script>
+</body>
+</html>
